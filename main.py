@@ -267,11 +267,11 @@ def main():
             # Logic to call the handler based on the required arguments
             if command == "hello":
                 print(handler())
-            elif command in ["all", "birthdays"]:
+            elif command == "all":
                 print(handler(book))
             else:
-                # CRUD commands and others that take args and the book
                 print(handler(args, book))
+
         else:
             print("Invalid command. Enter 'hello' to see available commands.")
 
