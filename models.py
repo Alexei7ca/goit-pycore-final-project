@@ -94,7 +94,6 @@ class Record:
         return f"{self.name}'s birthday: {self.birthday}"
 
 
-
 # --- AddressBook Class (Minimal working placeholders) ---
 class AddressBook(UserDict):
     def add_record(self, record: Record):
@@ -150,11 +149,14 @@ class AddressBook(UserDict):
             fields = [
                 record.name.value.lower(),
                 " ".join(p.value for p in record.phones).lower(),
-                str(record.email.value).lower() if record.email else "",
-                str(record.address.value).lower() if record.address else "",
             ]
+
+            if record.email and record.email.value:
+                fields.append(str(record.email.value).lower())
+            if record.address and record.address.value:
+                fields.append(str(record.address.value).lower())
+
             if any(query_lower in field for field in fields):
                 results.append(record)
 
         return results
-    
