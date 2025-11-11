@@ -159,9 +159,23 @@ def delete_contact(args: List[str], book: AddressBook) -> str:
 
 def hello_command() -> str:
     """Displays a welcome message and a command manual."""
-    return """
-Hello! Welcome to the Personal Assistant bot. Enter 'hello' to see commands.
+    manual = """
+Hello! Welcome to the Personal Assistant bot. Here are the available commands:
+| Command | Arguments                           | Example                       | Description                               |
+| :------ | :---------------------------------- | :---------------------------- | :---------------------------------------- |
+| hello   |                                     | hello                         | Displays this manual.                     |
+| add     | <Name> <Phone> [Email] [Address...] | add John 1234567890 john@mail | Adds a new contact or phone (with optional email/address).|
+| change  | <Name> <Old Phone> <New P>          | change John 123.. 098..       | Updates an existing contact's phone.      |
+| phone   | <Name>                              | phone John                    | Shows a contact's full details.           |
+| all     |                                     | all                           | Lists all saved contacts.                 |
+| delete  | <Name>                              | delete John                   | Deletes a contact.                        |
+| add-birthday | <Name> <DD.MM.YYYY>            | add-birthday John 01.01.1990  | Adds contact birthday (Task 3).           |
+| show-birthday| <Name>                         | show-birthday John            | Shows contact birthday (Task 3).          |
+| birthdays|                                    | birthdays                     | Shows upcoming birthdays (Task 3).        |
+| close   |                                     | close                         | Exits the bot (data will be saved).       |
+| exit    |                                     | exit                          | Exits the bot (data will be saved).       |
 """
+    return manual
 
 def main():
     book = load_data() # Loads AddressBook (using Task 5 placeholder)
@@ -170,7 +184,14 @@ def main():
     
     commands_map = {
         "hello": hello_command,
-        # CRUD commands to be added in subsequent commits
+        "add": add_contact,
+        "change": change_contact,
+        "phone": show_phone,
+        "all": show_all,
+        "delete": delete_contact,
+        "birthdays": lambda book: book.get_upcoming_birthdays(), # Task 3 placeholder
+        "add-birthday": lambda args, book: "Birthday commands pending Task 3.",
+        "show-birthday": lambda args, book: "Birthday commands pending Task 3.",
     }
 
     while True:
@@ -194,11 +215,14 @@ def main():
         handler = commands_map.get(command)
         
         if handler:
-            # Call logic will be updated in the final commit
+            # Logic to call the handler based on the required arguments
             if command == "hello":
                 print(handler())
+            elif command in ["all", "birthdays"]:
+                print(handler(book))
             else:
-                print("Command not yet implemented.")
+                # CRUD commands and others that take args and the book
+                print(handler(args, book))
         else:
             print("Invalid command. Enter 'hello' to see available commands.")
 
