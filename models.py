@@ -1,6 +1,6 @@
 from collections import UserDict
 from typing import List, Optional
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 
 # --- Custom Exceptions (Required by main.py @input_error) ---
 class InvalidPhoneFormatError(Exception):
@@ -82,6 +82,17 @@ class Record:
         self.email = Email(email_str)
     def add_address(self, address_str: str):
         self.address = Field(address_str)
+        
+    def add_birthday(self, date_str: str):
+        """Adds or updates a contact's birthday."""
+        self.birthday = Birthday(date_str)
+
+    def show_birthday(self) -> str:
+        """Returns the birthday as a string or message if not set."""
+        if not self.birthday or not self.birthday.value:
+            return f"No birthday set for {self.name}."
+        return f"{self.name}'s birthday: {self.birthday}"
+
 
 
 # --- AddressBook Class (Minimal working placeholders) ---
@@ -102,3 +113,51 @@ class AddressBook(UserDict):
     # Minimal placeholder for Task 3 dependency
     def get_upcoming_birthdays(self):
         return "Upcoming birthdays feature pending Task 3 completion."
+	
+    def get_upcoming_birthdays(self, days: int = 7) -> str:
+        """Returns list of contacts with birthdays within given days, handling weekend rollovers."""
+        today = date.today()
+        upcoming = []
+
+        for record in self.data.values():
+            if not record.birthday or not record.birthday.value:
+                continue
+
+            bday = record.birthday.value.replace(year=today.year)
+            # If birthday already passed this year, take next year's
+            if bday < today:
+                bday = bday.replace(year=today.year + 1)
+
+            delta = (bday - today).days
+            if 0 <= delta <= days:
+                # Weekend rollover: move Sat/Sun to Monday
+                if bday.weekday() == 5:  # Saturday
+                    bday += timedelta(days=2)
+                elif bday.weekday() == 6:  # Sunday
+                    bday += timedelta(days=1)
+                upcoming.append((record.name.value, bday.strftime("%d.%m.%Y")))
+
+        if not upcoming:
+            return "No upcoming birthdays."
+
+        result = "Upcoming birthdays:\n"
+        for name, bday_str in sorted(upcoming, key=lambda x: datetime.strptime(x[1], "%d.%m.%Y")):
+            result += f"{name}: {bday_str}\n"
+        return result.strip()
+
+    def search_contacts(self, query: str) -> List[Record]:
+        """Finds contacts by matching query against all fields."""
+        query_lower = query.lower()
+        results = []
+
+        for record in self.data.values():
+            fields = [
+                record.name.value.lower(),
+                " ".join(p.value for p in record.phones).lower(),
+                str(record.email.value).lower() if record.email else "",
+                str(record.address.value).lower() if record.address else "",
+            ]
+            if any(query_lower in field for field in fields):
+                results.append(record)
+
+        return results

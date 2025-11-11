@@ -177,6 +177,54 @@ Hello! Welcome to the Personal Assistant bot. Here are the available commands:
 """
     return manual
 
+@input_error
+def add_birthday(args: List[str], book: AddressBook) -> str:
+    """Adds or updates a birthday for a contact. Format: add-birthday <Name> <DD.MM.YYYY>"""
+    if len(args) < 2:
+        raise ValueError("Invalid format. Command requires a name and a date (DD.MM.YYYY).")
+
+    name, date_str = args[0], args[1]
+    record = book.find(name)
+    if record is None:
+        raise ContactNotFoundError(f"Contact '{name}' not found.")
+
+    record.add_birthday(date_str)
+    return f"Birthday for {name} set to {date_str}."
+
+
+@input_error
+def show_birthday(args: List[str], book: AddressBook) -> str:
+    """Shows a contact's birthday. Format: show-birthday <Name>"""
+    if len(args) < 1:
+        raise ValueError("Invalid format. Command requires a name.")
+
+    name = args[0]
+    record = book.find(name)
+    if record is None:
+        raise ContactNotFoundError(f"Contact '{name}' not found.")
+
+    return record.show_birthday()
+
+
+@input_error
+def birthdays(args: List[str], book: AddressBook) -> str:
+    """Shows upcoming birthdays within N days (default 7). Format: birthdays [days]"""
+    days = int(args[0]) if args else 7
+    return book.get_upcoming_birthdays(days)
+
+
+@input_error
+def search_command(args: List[str], book: AddressBook) -> str:
+    """Searches contacts by name, phone, email, or address. Format: search <query>"""
+    if len(args) < 1:
+        raise ValueError("Invalid format. Command requires a search query.")
+
+    query = " ".join(args)
+    results = book.search_contacts(query)
+    if not results:
+        return "No contacts found."
+    return "\n".join(str(r) for r in results)
+
 def main():
     book = load_data() # Loads AddressBook (using Task 5 placeholder)
     
@@ -189,9 +237,10 @@ def main():
         "phone": show_phone,
         "all": show_all,
         "delete": delete_contact,
-        "birthdays": lambda book: book.get_upcoming_birthdays(), # Task 3 placeholder
-        "add-birthday": lambda args, book: "Birthday commands pending Task 3.",
-        "show-birthday": lambda args, book: "Birthday commands pending Task 3.",
+        "birthdays": birthdays,  # Updated to real handler
+        "add-birthday": add_birthday,
+        "show-birthday": show_birthday,
+        "search": search_command,
     }
 
     while True:
