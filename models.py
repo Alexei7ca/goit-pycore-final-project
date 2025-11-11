@@ -192,7 +192,7 @@ class NoteBook(UserDict):
         standardized_title = title.lower()
         note = self.data.get(standardized_title)
         if note:
-            note.content = new_text
+            note.content = new_text.lower()
         else:
             raise NoteNotFoundError(f"Note {title} not found.")
 

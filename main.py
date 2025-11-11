@@ -272,12 +272,9 @@ def show_all_notes(notes: NoteBook) -> str:
         return "No notes found."
     
     result = "All notes:\n"
-    for note in notes.values():
+    for note in notes.data.values():
         result += f"{note}\n"
     return result.strip()
-
-
-
 
 
 
@@ -330,12 +327,17 @@ def main():
             # Logic to call the handler based on the required arguments
             if command == "hello":
                 print(handler())
-            elif command in ["all", "show-all-notes"]:
-                target = notes if "note" in command else book
-                print(handler(target))
+            elif command == "all":
+                print(handler(book))
+            elif command == "show-all-notes":
+                print(handler(notes))
+            elif command in ["birthdays", "add-birthday", "show-birthday", "search"]:
+                print(handler(args, book))
+            elif command in ["add-note", "edit-note", "delete-note"]:
+                print(handler(args, notes))
             else:
-                target = notes if "note" in command else book
-                print(handler(args, target))
+            # Should be unreachable with current commands
+                print("Unknown internal command logic.")
 
         else:
             print("Invalid command. Enter 'hello' to see available commands.")
