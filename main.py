@@ -50,7 +50,66 @@ def parse_input(user_input: str) -> Tuple[str, List[str]]:
         
     return cmd, args
 
-# --- CRUD commands will be added here ---
+# --- CRUD commands ---
+
+@input_error
+def add_contact(args: List[str], book: AddressBook) -> str:
+    """
+    Adds a new contact with at least a name and a phone number.
+    Format: add <name> <phone> [email] [address]
+    """
+    if len(args) < 2:
+        raise ValueError("Invalid format. Command requires at least a name and phone number.")
+        
+    # Extract arguments: Name, Phone (required), Email, Address (optional)
+    name, phone, *optional_fields = args
+
+    record = book.find(name)
+    message = f"Phone {phone} added to existing contact {name}."
+    
+    # If contact does not exist, create it and add the required phone
+    if record is None:
+        record = Record(name) 
+        book.add_record(record)
+        message = f"Contact {name} added."
+        
+    record.add_phone(phone) # Validation happens in Record/Phone class
+
+    # Handle optional fields (Email and Address)
+    if optional_fields:
+        email = optional_fields[0]
+        # Assumes Record has add_email method that handles validation
+        record.add_email(email) 
+        message += f" Email: {email} added."
+        
+    if len(optional_fields) > 1:
+        address_parts = " ".join(optional_fields[1:])
+        # Assumes Record has add_address method
+        record.add_address(address_parts) 
+        message += f" Address: {address_parts} added."
+        
+    return message
+
+@input_error
+def change_contact(args: List[str], book: AddressBook) -> str:
+    """
+    Changes an existing contact's old phone number to a new one.
+    Format: change <name> <old_phone> <new_phone>
+    """
+    if len(args) < 3:
+        raise ValueError("Invalid format. Command requires a name, old phone, and new phone.")
+        
+    name, old_phone, new_phone, *_ = args
+    record = book.find(name)
+    
+    if record is None:
+        raise ContactNotFoundError(f"Contact '{name}' not found.")
+        
+    # Validation for new_phone happens inside edit_phone (Task 1)
+    record.edit_phone(old_phone, new_phone)
+    
+    return f"Phone number for '{name}' successfully changed from {old_phone} to {new_phone}."
+
 
 def hello_command() -> str:
     """Displays a welcome message and a command manual."""
