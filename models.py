@@ -110,10 +110,6 @@ class AddressBook(UserDict):
         else:
             raise ContactNotFoundError(f"Contact {name} not found.")
             
-    # Minimal placeholder for Task 3 dependency
-    def get_upcoming_birthdays(self):
-        return "Upcoming birthdays feature pending Task 3 completion."
-	
     def get_upcoming_birthdays(self, days: int = 7) -> str:
         """Returns list of contacts with birthdays within given days, handling weekend rollovers."""
         today = date.today()
