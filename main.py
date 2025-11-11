@@ -111,6 +111,52 @@ def change_contact(args: List[str], book: AddressBook) -> str:
     return f"Phone number for '{name}' successfully changed from {old_phone} to {new_phone}."
 
 
+@input_error
+def show_phone(args: List[str], book: AddressBook) -> str:
+    """
+    Shows the full details for a specific contact.
+    Format: phone <name>
+    """
+    if len(args) < 1:
+        raise ValueError("Invalid format. Command requires a name.")
+        
+    name = args[0]
+    record = book.find(name)
+    
+    if record is None:
+        raise ContactNotFoundError(f"Contact '{name}' not found.")
+        
+    # Assumes Record.__str__ provides a detailed view of all fields
+    return str(record)
+
+def show_all(book: AddressBook) -> str:
+    """
+    Shows all contacts in the address book.
+    """
+    if not book.data:
+        return "The address book is empty."
+        
+    result = "All contacts:\n"
+    for record in book.data.values():
+        result += f"{record}\n"
+        
+    return result.strip()
+
+@input_error
+def delete_contact(args: List[str], book: AddressBook) -> str:
+    """
+    Deletes a contact record from the address book.
+    Format: delete <name>
+    """
+    if len(args) < 1:
+        raise ValueError("Invalid format. Command requires a name.")
+        
+    name = args[0]
+    book.delete(name)
+    
+    return f"Contact '{name}' deleted successfully."
+
+
 def hello_command() -> str:
     """Displays a welcome message and a command manual."""
     return """
