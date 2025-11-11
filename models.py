@@ -14,6 +14,8 @@ class InvalidEmailFormatError(Exception):
 # Placeholder for fields not yet implemented
 class InvalidAddressFormatError(Exception):
     pass
+class NoteNotFoundError(Exception):
+    pass
 
 # --- Core Field Classes (Minimal working placeholders) ---
 class Field:
@@ -160,3 +162,44 @@ class AddressBook(UserDict):
                 results.append(record)
 
         return results
+
+    
+
+class Note:
+    """Stores the content and has a unique title for identification"""
+    def __init__(self, title: str, content: str ):
+        if not title:
+            raise ValueError("Note title cannot be empty")
+        self.__title = title # store the title (ID)
+        self.content = content.lower()
+
+    def __str__(self):
+        return f"Note: '{self.title}'\nContent: {self.content}..."
+    
+    @property
+    def title(self):
+        return self.__title
+    
+
+class NoteBook(UserDict):
+    def add_note(self, note: Note):
+        self.data[str(note.title).lower()] = note
+
+    def find_note_by_id(self, title: str):
+        return self.data.get(title.lower())
+
+    def edit_note_text(self, title: str, new_text:str):
+        standardized_title = title.lower()
+        note = self.data.get(standardized_title)
+        if note:
+            note.content = new_text.lower()
+        else:
+            raise NoteNotFoundError(f"Note {title} not found.")
+
+    def delete_note(self, title: str):
+        standardized_title = title.lower()
+        if standardized_title in self.data:
+            del self.data[standardized_title]
+        else:
+            raise NoteNotFoundError(f"Note {title} not found.")
+
