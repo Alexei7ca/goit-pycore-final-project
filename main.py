@@ -1,7 +1,8 @@
 from typing import Dict, List, Callable, Tuple
 from models import (
     AddressBook, Record, InvalidPhoneFormatError, ContactNotFoundError, 
-    PhoneNotFoundError, InvalidEmailFormatError, InvalidAddressFormatError
+    PhoneNotFoundError, InvalidEmailFormatError, InvalidAddressFormatError, 
+    Note, NoteBook, NoteNotFoundError
 )
 from serialization_utils import save_data, load_data
 
@@ -161,24 +162,127 @@ def hello_command() -> str:
     """Displays a welcome message and a command manual."""
     manual = """
 Hello! Welcome to the Personal Assistant bot. Here are the available commands:
-| Command | Arguments                           | Example                       | Description                               |
-| :------ | :---------------------------------- | :---------------------------- | :---------------------------------------- |
-| hello   |                                     | hello                         | Displays this manual.                     |
+| Command        | Arguments                    | Example                       | Description                               |
+| :------------- | :--------------------------- | :---------------------------- | :---------------------------------------- |
+| hello          |                              | hello                         | Displays this manual.                     |
 | add     | <Name> <Phone> [Email] [Address...] | add John 1234567890 john@mail | Adds a new contact or phone (with optional email/address).|
-| change  | <Name> <Old Phone> <New P>          | change John 123.. 098..       | Updates an existing contact's phone.      |
-| phone   | <Name>                              | phone John                    | Shows a contact's full details.           |
-| all     |                                     | all                           | Lists all saved contacts.                 |
-| delete  | <Name>                              | delete John                   | Deletes a contact.                        |
-| add-birthday | <Name> <DD.MM.YYYY>            | add-birthday John 01.01.1990  | Adds contact birthday (Task 3).           |
-| show-birthday| <Name>                         | show-birthday John            | Shows contact birthday (Task 3).          |
-| birthdays|                                    | birthdays                     | Shows upcoming birthdays (Task 3).        |
-| close   |                                     | close                         | Exits the bot (data will be saved).       |
-| exit    |                                     | exit                          | Exits the bot (data will be saved).       |
+| change         | <Name> <Old Phone> <New P>   | change John 123.. 098..       | Updates an existing contact's phone.      |
+| phone          | <Name>                       | phone John                    | Shows a contact's full details.           |
+| all            |                              | all                           | Lists all saved contacts.                 |
+| delete         | <Name>                       | delete John                   | Deletes a contact.                        |
+| add-birthday   | <Name> <DD.MM.YYYY>          | add-birthday John 01.01.1990  | Adds contact birthday (Task 3).           |
+| show-birthday  | <Name>                       | show-birthday John            | Shows contact birthday (Task 3).          |
+| birthdays      |                              | birthdays                     | Shows upcoming birthdays (Task 3).        |
+| close          |                              | close                         | Exits the bot (data will be saved).       |
+| exit           |                              | exit                          | Exits the bot (data will be saved).       |
+| add-note       | <title> <content>            | add-note Shopping Eggs Milk   | Adds a new note.                          |
+| edit-note      | <title> <new_content>        | edit-note Shopping, Milk, Tea | Edits an existing note.                   |
+| delete-note    | <title>                      | delete-note Shopping          | Deletes a note.                           |
+| show-all-notes |                              | show-all-notes                | Lists all notes.                          |
 """
     return manual
 
+@input_error
+def add_birthday(args: List[str], book: AddressBook) -> str:
+    """Adds or updates a birthday for a contact. Format: add-birthday <Name> <DD.MM.YYYY>"""
+    if len(args) < 2:
+        raise ValueError("Invalid format. Command requires a name and a date (DD.MM.YYYY).")
+
+    name, date_str = args[0], args[1]
+    record = book.find(name)
+    if record is None:
+        raise ContactNotFoundError(f"Contact '{name}' not found.")
+
+    record.add_birthday(date_str)
+    return f"Birthday for {name} set to {date_str}."
+
+
+@input_error
+def show_birthday(args: List[str], book: AddressBook) -> str:
+    """Shows a contact's birthday. Format: show-birthday <Name>"""
+    if len(args) < 1:
+        raise ValueError("Invalid format. Command requires a name.")
+
+    name = args[0]
+    record = book.find(name)
+    if record is None:
+        raise ContactNotFoundError(f"Contact '{name}' not found.")
+
+    return record.show_birthday()
+
+
+@input_error
+def birthdays(args: List[str], book: AddressBook) -> str:
+    """Shows upcoming birthdays within N days (default 7). Format: birthdays [days]"""
+    days = int(args[0]) if args else 7
+    return book.get_upcoming_birthdays(days)
+
+
+@input_error
+def search_command(args: List[str], book: AddressBook) -> str:
+    """Searches contacts by name, phone, email, or address. Format: search <query>"""
+    if len(args) < 1:
+        raise ValueError("Invalid format. Command requires a search query.")
+
+    query = " ".join(args)
+    results = book.search_contacts(query)
+    if not results:
+        return "No contacts found."
+    return "\n".join(str(r) for r in results)
+
+@input_error
+def add_note(args: List[str], notes: NoteBook) -> str:
+    """Adds a new note. Format: add-note <title> <content>"""
+    if len(args) < 2:
+        raise ValueError("Invalid format. Command requires a title and content.")
+    
+    title = args[0]
+    content = " ".join(args[1:])
+
+    note = Note(title, content)
+    notes.add_note(note)
+    return f"Note '{title}' added successfully."
+
+@input_error
+def edit_note(args: List[str], notes: NoteBook) -> str:
+    """Edits a note's content. Format: edit-note <title> <new_content>"""
+    if len(args) < 2:
+       raise ValueError("Invalid format. Command requires a title and a new content.") 
+    
+    title = args[0]
+    new_content = " ".join(args[1:])
+
+    notes.edit_note_text(title, new_content)
+    return f"Note '{title}' updated successfully."
+
+@input_error
+def delete_note(args: List[str], notes: NoteBook) -> str:
+    """Deletes a note by title. Format: delete-note <title>"""
+    if len(args) < 1:
+        raise ValueError("Invalid format. Command requires a title.")
+    
+    title = args[0]
+    notes.delete_note(title)
+    return f"Note '{title}' deleted successfully."
+
+@input_error
+def show_all_notes(notes: NoteBook) -> str:
+    """Displays all notes."""
+    if not notes.data:
+        return "No notes found."
+    
+    result = "All notes:\n"
+    for note in notes.data.values():
+        result += f"{note}\n"
+    return result.strip()
+
+
+
+
+
 def main():
     book = load_data() # Loads AddressBook (using Task 5 placeholder)
+    notes = NoteBook() ## Initializes an empty NoteBook for managing notes
     
     print("Welcome to the Personal Assistant bot! Enter 'hello' to see commands.")
     
@@ -189,9 +293,14 @@ def main():
         "phone": show_phone,
         "all": show_all,
         "delete": delete_contact,
-        "birthdays": lambda book: book.get_upcoming_birthdays(), # Task 3 placeholder
-        "add-birthday": lambda args, book: "Birthday commands pending Task 3.",
-        "show-birthday": lambda args, book: "Birthday commands pending Task 3.",
+        "birthdays": birthdays,  # Updated to real handler
+        "add-birthday": add_birthday,
+        "show-birthday": show_birthday,
+        "search": search_command,
+        "add-note": add_note,
+        "edit-note": edit_note,
+        "delete-note": delete_note,
+        "show-all-notes": show_all_notes,
     }
 
     while True:
@@ -218,13 +327,21 @@ def main():
             # Logic to call the handler based on the required arguments
             if command == "hello":
                 print(handler())
-            elif command in ["all", "birthdays"]:
+            elif command == "all":
                 print(handler(book))
-            else:
-                # CRUD commands and others that take args and the book
+            elif command == "show-all-notes":
+                print(handler(notes))
+            elif command in ["birthdays", "add-birthday", "show-birthday", "search"]:
                 print(handler(args, book))
+            elif command in ["add-note", "edit-note", "delete-note"]:
+                print(handler(args, notes))
+            else:
+            # Should be unreachable with current commands
+                print("Unknown internal command logic.")
+
         else:
             print("Invalid command. Enter 'hello' to see available commands.")
 
 if __name__ == "__main__":
     main()
+    
