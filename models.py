@@ -63,6 +63,10 @@ class Email(Field):
         return value
 
 
+class Address(Field):
+    pass
+
+
 class Birthday(Field):
     value: date
 
@@ -76,7 +80,7 @@ class Birthday(Field):
             raise InvalidBirthdayFormatError("⚠️ Invalid date format. Use DD.MM.YYYY")
         
         if parsed_date > date.today():
-                raise ValueError("⚠️ Birthday cannot be in the future.")
+                raise InvalidBirthdayFormatError("⚠️ Birthday cannot be in the future.")
         
         return parsed_date
 
@@ -89,13 +93,15 @@ class Record:
         self.name = Name(name)
         self.phones: List[Phone] = []
         self.birthday: Optional[Birthday] = None
-        self.email: Optional[Email] = None  # Placeholder
-        self.address: Optional[Field] = None # Placeholder
+        self.email: Optional[Email] = None
+        self.address: Optional[Address] = None
 
     def __str__(self):
         phones_str = '; '.join(str(p) for p in self.phones)
         birthday_str = f", birthday: {self.birthday}" if self.birthday else ""
-        return f"Contact name: {self.name}, phones: {phones_str}{birthday_str}"
+        email_str = f", email: {self.email}" if self.email else ""
+        address_str = f", address: {self.address}" if self.address else ""
+        return f"Contact name: {self.name}, phones: {phones_str}{birthday_str}{email_str}{address_str}"
 
     def add_phone(self, phone_number: str) -> None:
         if not self.find_phone(phone_number):
@@ -126,7 +132,7 @@ class Record:
         self.email = Email(email_str)
 
     def add_address(self, address_str: str) -> None:
-        self.address = Field(address_str)
+        self.address = Address(address_str)
 
 
 class AddressBook(UserDict[str, Record]):
