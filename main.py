@@ -1,8 +1,7 @@
 from typing import Dict, List, Callable, Tuple
 from models import (
-    AddressBook, Record, InvalidPhoneFormatError, ContactNotFoundError, 
-    PhoneNotFoundError, InvalidEmailFormatError, InvalidAddressFormatError, 
-    Note, NoteBook, NoteNotFoundError
+    AddressBook, Record, AssistantBotError, ContactNotFoundError,
+    Note, NoteBook
 )
 from serialization_utils import save_data, load_data
 
@@ -16,14 +15,9 @@ def input_error(func: Callable) -> Callable:
             if "not enough values to unpack" in str(e) or "Invalid format" in str(e) or "missing a required argument" in str(e):
                 return "Invalid command format. Please provide necessary arguments."
             return f"Error with input data: {e}"
-        except KeyError:
-            return "Contact not found."
-        except ContactNotFoundError as e:
-            return str(e)
-        except PhoneNotFoundError as e:
-            return str(e)
-        except (InvalidPhoneFormatError, InvalidEmailFormatError, InvalidAddressFormatError) as e:
-            # Catch all specific validation errors from models.py
+        # Catch specific custom errors from models.py
+        except AssistantBotError as e:
+            # This catches all custom exceptions (ContactNotFoundError, NoteNotFoundError, etc.)
             return str(e)
         except Exception as e:
             # Catch any other unexpected errors
@@ -281,7 +275,10 @@ def show_all_notes(notes: NoteBook) -> str:
 
 
 def main():
-    book = load_data() # Loads AddressBook (using Task 5 placeholder)
+    # NOTE: Task 5 implementation will handle persistence for both book and notes
+    # For now, we manually initialize both containers.
+    # The actual load_data() will be updated in Task 5 to return both.
+    book = AddressBook() 
     notes = NoteBook() ## Initializes an empty NoteBook for managing notes
     
     print("Welcome to the Personal Assistant bot! Enter 'hello' to see commands.")
@@ -308,7 +305,7 @@ def main():
             user_input = input("Enter a command: ").strip()
         except EOFError:
             print("\nGood bye!")
-            save_data(book)
+            save_data(book) # implementation => Task 5
             break
             
         if not user_input:

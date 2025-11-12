@@ -4,22 +4,34 @@ from typing import List, Optional
 from datetime import datetime, date, timedelta
 
 # --- Custom Exceptions (Required by main.py @input_error) ---
-class InvalidPhoneFormatError(Exception):
+class AssistantBotError(Exception):
+    """Base exception for all custom errors in the Personal Assistant Bot."""
     pass
-class InvalidNameFormatError(Exception):
+
+class DataValidationError(AssistantBotError):
+    """Base exception for validation errors in data fields (e.g., Phone, Email)."""
     pass
-class ContactNotFoundError(Exception):
+
+# Contact/Field Errors (Inheriting from DataValidationError)
+class InvalidNameFormatError(DataValidationError):
     pass
-class PhoneNotFoundError(Exception):
+class InvalidPhoneFormatError(DataValidationError):
     pass
-class InvalidEmailFormatError(Exception):
+class InvalidEmailFormatError(DataValidationError):
     pass
-class InvalidBirthdayFormatError(Exception):
+class InvalidBirthdayFormatError(DataValidationError):
     pass
-# Placeholder for fields not yet implemented
-class InvalidAddressFormatError(Exception):
+class InvalidAddressFormatError(DataValidationError):
+    pass # Placeholder for specific Address validation
+
+# Record/Book Errors (Inheriting from AssistantBotError)
+class ContactNotFoundError(AssistantBotError):
     pass
-class NoteNotFoundError(Exception):
+class PhoneNotFoundError(AssistantBotError):
+    pass
+
+# Notes Errors (Inheriting from AssistantBotError)
+class NoteNotFoundError(AssistantBotError):
     pass
 
 # --- Core Field Classes (Minimal working placeholders) ---
@@ -221,7 +233,7 @@ class Note:
     def __init__(self, title: str, content: str ):
         if not title:
             raise ValueError("Note title cannot be empty")
-        self.__title = title # store the title (ID)
+        self.__title = title.lower() # store the title (ID)
         self.content = content.lower()
 
     def __str__(self):
