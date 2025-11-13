@@ -23,6 +23,8 @@ class InvalidBirthdayFormatError(DataValidationError):
     pass
 class InvalidAddressFormatError(DataValidationError):
     pass # Placeholder for specific Address validation
+class InvalidTagFormatError(DataValidationError):
+    pass # Raised when a tag is empty or contains invalid characters (e.g., spaces)
 
 # Record/Book Errors (Inheriting from AssistantBotError)
 class ContactNotFoundError(AssistantBotError):
@@ -230,18 +232,44 @@ class AddressBook(UserDict[str, Record]):
 
 class Note:
     """Stores the content and has a unique title for identification"""
-    def __init__(self, title: str, content: str ):
+    def __init__(self, title: str, content: str, tags: list[str] | set[str] = None ):
         if not title:
             raise ValueError("Note title cannot be empty")
         self.__title = title.lower() # store the title (ID)
         self.content = content.lower()
+        # Store tags as a set to avoid duplicates
+        self.tags = set()
+        if tags:
+            for tag in tags:
+                cleaned_tag = tag.strip().lower()
+                if not cleaned_tag or " " in cleaned_tag:
+                    raise InvalidTagFormatError(f"Invalid tag: '{tag}'. Tags cannot be empty or contain spaces.")
+                self.tags.add(cleaned_tag)
+
 
     def __str__(self):
-        return f"Note: '{self.title}'\nContent: {self.content}..."
+    # Show only the first 50 characters of content as a preview
+        preview = (self.content[:50] + "...") if len(self.content) > 50 else self.content
+        tags_str = ", ".join(sorted(self.tags)) if self.tags else "No tags"
+        return f"Note: '{self.title}'\nContent: {preview}\nTags: {tags_str}"
+
+    
     
     @property
     def title(self):
         return self.__title
+    
+    def add_tag(self, tag:str):
+        cleaned_tag = tag.strip().lower()
+        if not cleaned_tag or " " in cleaned_tag:
+            raise InvalidTagFormatError(f"Invalid tag: '{tag}'. Tags cannot be empty or contain spaces.")
+        self.tags.add(cleaned_tag)
+
+    def remove_tag(self, tag:str):
+        cleaned_tag = tag.strip().lower()
+        if cleaned_tag in self.tags:
+            self.tags.remove(cleaned_tag)
+
     
 
 class NoteBook(UserDict):
