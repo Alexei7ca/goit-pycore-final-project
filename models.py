@@ -241,7 +241,7 @@ class Note:
         self.tags = set()
         if tags:
             for tag in tags:
-                cleaned_tag = tag.strip().lower()
+                cleaned_tag = tag.strip().lower().lstrip('#')
                 if not cleaned_tag or " " in cleaned_tag:
                     raise InvalidTagFormatError(f"Invalid tag: '{tag}'. Tags cannot be empty or contain spaces.")
                 self.tags.add(cleaned_tag)
@@ -260,19 +260,21 @@ class Note:
         return self.__title
     
     def add_tag(self, tag:str):
-        cleaned_tag = tag.strip().lower()
+        cleaned_tag = tag.strip().lower().lstrip('#')
         if not cleaned_tag or " " in cleaned_tag:
             raise InvalidTagFormatError(f"Invalid tag: '{tag}'. Tags cannot be empty or contain spaces.")
         self.tags.add(cleaned_tag)
 
     def remove_tag(self, tag:str):
-        cleaned_tag = tag.strip().lower()
+        cleaned_tag = tag.strip().lower().lstrip('#')
         if cleaned_tag in self.tags:
             self.tags.remove(cleaned_tag)
 
     
 
 class NoteBook(UserDict):
+    data: dict[str, Note]
+
     def add_note(self, note: Note):
         self.data[str(note.title).lower()] = note
 
@@ -293,4 +295,21 @@ class NoteBook(UserDict):
             del self.data[standardized_title]
         else:
             raise NoteNotFoundError(f"Note {title} not found.")
+        
+    def add_tag_to_note(self, title: str, tags: list[str] | set[str]):
+        standardized_title = title.lower()
+        note = self.data.get(standardized_title)
+        if not note:
+            raise NoteNotFoundError(f"Note {title} not found.")
+        
+        for tag in tags:
+            note.add_tag(tag)
 
+    def remove_tag_from_note(self, title: str, tag: str):
+        standardized_title = title.lower()
+        note = self.data.get(standardized_title)
+        if not note:
+            raise NoteNotFoundError(f"Note {title} not found.")
+        
+        note.remove_tag(tag)
+            
