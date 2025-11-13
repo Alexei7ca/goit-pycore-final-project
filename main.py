@@ -275,11 +275,8 @@ def show_all_notes(notes: NoteBook) -> str:
 
 
 def main():
-    # NOTE: Task 5 implementation will handle persistence for both book and notes
-    # For now, we manually initialize both containers.
-    # The actual load_data() will be updated in Task 5 to return both.
-    book = AddressBook() 
-    notes = NoteBook() ## Initializes an empty NoteBook for managing notes
+# --- Load both objects from the utility function ---
+    book, notes = load_data()
     
     print("Welcome to the Personal Assistant bot! Enter 'hello' to see commands.")
     
@@ -305,7 +302,7 @@ def main():
             user_input = input("Enter a command: ").strip()
         except EOFError:
             print("\nGood bye!")
-            save_data(book) # implementation => Task 5
+            save_data(book, notes)
             break
             
         if not user_input:
@@ -315,7 +312,7 @@ def main():
         
         if command in ["close", "exit"]:
             print("Good bye!")
-            save_data(book)
+            save_data(book, notes)
             break
             
         handler = commands_map.get(command)
