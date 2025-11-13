@@ -288,7 +288,7 @@ def add_note_tag(args: List[str], notes: NoteBook) -> str:
        raise ValueError("Invalid format. Command requires a title and at least one tag.") 
     
     title = args[0]
-    tags = args[1:]# do I need to check for #?
+    tags = args[1:]
 
     notes.add_tag_to_note(title, tags)
     return f"Note '{title}' updated successfully."
@@ -300,7 +300,7 @@ def remove_note_tag(args: List[str], notes: NoteBook) -> str:
        raise ValueError("Invalid format. Command requires a title and a tag.") 
     
     title = args[0]
-    tag = args[1]# do I need to check for #?
+    tag = args[1]
 
     notes.remove_tag_from_note(title, tag)
     return f"Note '{title}' updated successfully."
