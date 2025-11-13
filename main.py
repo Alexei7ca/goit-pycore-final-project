@@ -169,9 +169,11 @@ Hello! Welcome to the Personal Assistant bot. Here are the available commands:
 | birthdays      |                              | birthdays                     | Shows upcoming birthdays (Task 3).        |
 | close          |                              | close                         | Exits the bot (data will be saved).       |
 | exit           |                              | exit                          | Exits the bot (data will be saved).       |
-| add-note       | <title> <content>            | add-note Shopping Eggs Milk   | Adds a new note.                          |
+| add-note       | <title> <content> #tag1 #tag2| add-note Shopping Eggs Milk   | Adds a new note.                          |
 | edit-note      | <title> <new_content>        | edit-note Shopping, Milk, Tea | Edits an existing note.                   |
 | delete-note    | <title>                      | delete-note Shopping          | Deletes a note.                           |
+| add-tag        | <title> #tag1 #tag2 ...      | add-tag shopping #urgent #home| Adds tags to existing note.               |
+| remove-tag     | <title> #tag1                | remove-tag shopping #urgent   | Remove tag from existing note.            |
 | show-all-notes |                              | show-all-notes                | Lists all notes.                          |
 """
     return manual
@@ -226,14 +228,23 @@ def search_command(args: List[str], book: AddressBook) -> str:
 
 @input_error
 def add_note(args: List[str], notes: NoteBook) -> str:
-    """Adds a new note. Format: add-note <title> <content>"""
+    """Adds a new note. Format: add-note <title> <content> #tag1 #tag2"""
     if len(args) < 2:
         raise ValueError("Invalid format. Command requires a title and content.")
     
     title = args[0]
-    content = " ".join(args[1:])
+    rest = " ".join(args[1:])
+    hash_index = rest.find('#')
+    
+    if hash_index != -1:
+        content = rest[:hash_index].strip()
+        tags_part = rest[hash_index:]
+        tags = [tag.lstrip('#') for tag in tags_part.split() if tag.startswith('#')]
+    else:
+        content = rest.strip()
+        tags = []
 
-    note = Note(title, content)
+    note = Note(title, content, tags)
     notes.add_note(note)
     return f"Note '{title}' added successfully."
 
@@ -270,6 +281,29 @@ def show_all_notes(notes: NoteBook) -> str:
         result += f"{note}\n"
     return result.strip()
 
+@input_error
+def add_note_tag(args: List[str], notes: NoteBook) -> str:
+    """Adds tags to a note. Format: add-tag <title> #tag1 #tag2 ..."""
+    if len(args) < 2:
+       raise ValueError("Invalid format. Command requires a title and at least one tag.") 
+    
+    title = args[0]
+    tags = args[1:]# do I need to check for #?
+
+    notes.add_tag_to_note(title, tags)
+    return f"Note '{title}' updated successfully."
+
+@input_error
+def remove_note_tag(args: List[str], notes: NoteBook) -> str:
+    """Removes tag from a note. Format: remove-tag <title> #tag1"""
+    if len(args) < 2:
+       raise ValueError("Invalid format. Command requires a title and a tag.") 
+    
+    title = args[0]
+    tag = args[1]# do I need to check for #?
+
+    notes.remove_tag_from_note(title, tag)
+    return f"Note '{title}' updated successfully."
 
 
 
@@ -295,6 +329,8 @@ def main():
         "edit-note": edit_note,
         "delete-note": delete_note,
         "show-all-notes": show_all_notes,
+        "add-tag": add_note_tag,
+        "remove-tag": remove_note_tag
     }
 
     while True:
@@ -327,7 +363,7 @@ def main():
                 print(handler(notes))
             elif command in ["birthdays", "add-birthday", "show-birthday", "search"]:
                 print(handler(args, book))
-            elif command in ["add-note", "edit-note", "delete-note"]:
+            elif command in ["add-note", "edit-note", "delete-note", "add-tag", "remove-tag"]:
                 print(handler(args, notes))
             else:
             # Should be unreachable with current commands

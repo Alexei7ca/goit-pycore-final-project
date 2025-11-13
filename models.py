@@ -273,6 +273,8 @@ class Note:
     
 
 class NoteBook(UserDict):
+    data: dict[str, Note]
+
     def add_note(self, note: Note):
         self.data[str(note.title).lower()] = note
 
@@ -293,4 +295,21 @@ class NoteBook(UserDict):
             del self.data[standardized_title]
         else:
             raise NoteNotFoundError(f"Note {title} not found.")
+        
+    def add_tag_to_note(self, title: str, tags: list[str] | set[str]):
+        standardized_title = title.lower()
+        note = self.data.get(standardized_title)
+        if not note:
+            raise NoteNotFoundError(f"Note {title} not found.")
+        
+        for tag in tags:
+            note.add_tag(tag.lstrip("#").lower())
 
+    def remove_tag_from_note(self, title: str, tag: str):
+        standardized_title = title.lower()
+        note = self.data.get(standardized_title)
+        if not note:
+            raise NoteNotFoundError(f"Note {title} not found.")
+        
+        note.remove_tag(tag)
+            
