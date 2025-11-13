@@ -275,11 +275,8 @@ def show_all_notes(notes: NoteBook) -> str:
 
 
 def main():
-    # NOTE: Task 5 implementation will handle persistence for both book and notes
-    # For now, we manually initialize both containers.
-    # The actual load_data() will be updated in Task 5 to return both.
-    book = AddressBook() 
-    notes = NoteBook() ## Initializes an empty NoteBook for managing notes
+# --- Load both objects from the utility function ---
+    book, notes = load_data()
     
     print("Welcome to the Personal Assistant bot! Enter 'hello' to see commands.")
     
