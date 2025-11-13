@@ -230,19 +230,39 @@ class AddressBook(UserDict[str, Record]):
 
 class Note:
     """Stores the content and has a unique title for identification"""
-    def __init__(self, title: str, content: str ):
+    def __init__(self, title: str, content: str, tags: list[str] | set[str] = None ):
         if not title:
             raise ValueError("Note title cannot be empty")
         self.__title = title.lower() # store the title (ID)
         self.content = content.lower()
+        # Store tags as a set to avoid duplicates
+        self.tags = set()
+        if tags:
+            for tag in tags:
+                cleaned_tag = tag.strip().lower()
+                if not cleaned_tag or " " in cleaned_tag:
+                    raise ValueError(f"Invalid tag: '{tag}'. Tags cannot be empty or contain spaces.")
+                self.tags.add(cleaned_tag)
+
 
     def __str__(self):
-        return f"Note: '{self.title}'\nContent: {self.content}..."
+        tags_str = ",".join(sorted(self.tags)) if self.tags else "No tags"
+        return f"Note: '{self.title}'\nContent: {self.content}...\nTags: {tags_str}"
     
     @property
     def title(self):
         return self.__title
     
+    def add_tag(self, tag:str):
+        cleaned_tag = tag.strip().lower()
+        if not cleaned_tag or " " in cleaned_tag:
+            raise ValueError(f"Invalid tag: '{tag}'. Tags cannot be empty or contain spaces.")
+        self.tags.add(cleaned_tag)
+
+    def remove_tag(self, tag:str):
+        cleaned_tag = tag.strip().lower()
+        if cleaned_tag in self.tags:
+            self.tags.remove(cleaned_tag)
 
 class NoteBook(UserDict):
     def add_note(self, note: Note):
@@ -265,4 +285,6 @@ class NoteBook(UserDict):
             del self.data[standardized_title]
         else:
             raise NoteNotFoundError(f"Note {title} not found.")
+        
+
 
