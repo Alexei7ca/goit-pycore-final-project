@@ -302,7 +302,7 @@ def main():
             user_input = input("Enter a command: ").strip()
         except EOFError:
             print("\nGood bye!")
-            save_data(book) # implementation => Task 5
+            save_data(book, notes)
             break
             
         if not user_input:
@@ -312,7 +312,7 @@ def main():
         
         if command in ["close", "exit"]:
             print("Good bye!")
-            save_data(book)
+            save_data(book, notes)
             break
             
         handler = commands_map.get(command)
