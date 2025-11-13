@@ -248,8 +248,12 @@ class Note:
 
 
     def __str__(self):
-        tags_str = ",".join(sorted(self.tags)) if self.tags else "No tags"
-        return f"Note: '{self.title}'\nContent: {self.content}...\nTags: {tags_str}"
+    # Show only the first 50 characters of content as a preview
+        preview = (self.content[:50] + "...") if len(self.content) > 50 else self.content
+        tags_str = ", ".join(sorted(self.tags)) if self.tags else "No tags"
+        return f"Note: '{self.title}'\nContent: {preview}\nTags: {tags_str}"
+
+    
     
     @property
     def title(self):
