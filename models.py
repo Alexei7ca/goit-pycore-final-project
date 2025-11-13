@@ -23,6 +23,8 @@ class InvalidBirthdayFormatError(DataValidationError):
     pass
 class InvalidAddressFormatError(DataValidationError):
     pass # Placeholder for specific Address validation
+class InvalidTagFormatError(DataValidationError):
+    pass # Raised when a tag is empty or contains invalid characters (e.g., spaces)
 
 # Record/Book Errors (Inheriting from AssistantBotError)
 class ContactNotFoundError(AssistantBotError):
@@ -241,7 +243,7 @@ class Note:
             for tag in tags:
                 cleaned_tag = tag.strip().lower()
                 if not cleaned_tag or " " in cleaned_tag:
-                    raise ValueError(f"Invalid tag: '{tag}'. Tags cannot be empty or contain spaces.")
+                    raise InvalidTagFormatError(f"Invalid tag: '{tag}'. Tags cannot be empty or contain spaces.")
                 self.tags.add(cleaned_tag)
 
 
@@ -256,7 +258,7 @@ class Note:
     def add_tag(self, tag:str):
         cleaned_tag = tag.strip().lower()
         if not cleaned_tag or " " in cleaned_tag:
-            raise ValueError(f"Invalid tag: '{tag}'. Tags cannot be empty or contain spaces.")
+            raise InvalidTagFormatError(f"Invalid tag: '{tag}'. Tags cannot be empty or contain spaces.")
         self.tags.add(cleaned_tag)
 
     def remove_tag(self, tag:str):
