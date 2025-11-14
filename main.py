@@ -174,6 +174,8 @@ Hello! Welcome to the Personal Assistant bot. Here are the available commands:
 | delete-note    | <title>                      | delete-note Shopping          | Deletes a note.                           |
 | add-tag        | <title> #tag1 #tag2 ...      | add-tag shopping #urgent #home| Adds tags to existing note.               |
 | remove-tag     | <title> #tag1                | remove-tag shopping #urgent   | Remove tag from existing note.            |
+| find-notes-by-tag | #tag1                     | find-notes-by-tag #urgent     | Shows notes filtered by tag               |
+| show-notes-sorted | [sort_key]                | show-notes-sorted tags        | shows a list of all notes sorted based on sort_key |
 | show-all-notes |                              | show-all-notes                | Lists all notes.                          |
 """
     return manual
@@ -305,7 +307,40 @@ def remove_note_tag(args: List[str], notes: NoteBook) -> str:
     notes.remove_tag_from_note(title, tag)
     return f"Note '{title}' updated successfully."
 
+@input_error
+def find_notes_by_tag(args: List[str], notes: NoteBook) -> str:
+    """Displays notes filtered by tag. Format: find-by-tag #tag1"""
+    if len(args) < 1:
+       raise ValueError("Invalid format. Command requires a tag.")
+    
+    tag_query = " ".join(args)
 
+    filtered = notes.find_notes_by_tag(tag_query)
+    if not filtered:
+        return F"No notes with tag {tag_query} found."
+    
+    return show_notes_table(f"Notes with tag {tag_query}", filtered)
+   
+
+@input_error
+def show_notes_sorted(args: List[str], notes: NoteBook) -> str:
+    """Displays all notes sorted based on sort_key. Format: show_notes_sorted [sort_key]"""
+    sort_key = args[0].lower() if args else "title"
+
+    if sort_key == 'tags':
+        sorted = notes.sort_notes_by_tag_count()
+    else:
+        sorted = notes.sort_notes_by_title()
+
+    return show_notes_table("Sorted notes", sorted)
+    
+
+def show_notes_table(tableTitle: str, notes: list[Note]):
+    result = f"{tableTitle}:\n"
+    for note in notes:
+        result += f"{note}\n"
+        result += f"{'-' * 40}\n"
+    return result.strip()
 
 
 def main():
@@ -330,7 +365,9 @@ def main():
         "delete-note": delete_note,
         "show-all-notes": show_all_notes,
         "add-tag": add_note_tag,
-        "remove-tag": remove_note_tag
+        "remove-tag": remove_note_tag,
+        "find-notes-by-tag": find_notes_by_tag,
+        "show-notes-sorted": show_notes_sorted
     }
 
     while True:
@@ -363,7 +400,7 @@ def main():
                 print(handler(notes))
             elif command in ["birthdays", "add-birthday", "show-birthday", "search"]:
                 print(handler(args, book))
-            elif command in ["add-note", "edit-note", "delete-note", "add-tag", "remove-tag"]:
+            elif command in ["add-note", "edit-note", "delete-note", "add-tag", "remove-tag", "find-notes-by-tag", "show-notes-sorted"]:
                 print(handler(args, notes))
             else:
             # Should be unreachable with current commands

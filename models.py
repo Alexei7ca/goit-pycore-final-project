@@ -312,4 +312,21 @@ class NoteBook(UserDict):
             raise NoteNotFoundError(f"Note {title} not found.")
         
         note.remove_tag(tag)
+
+    def find_notes_by_tag(self, tag: str) -> list[Note]:
+        cleaned_tag = tag.strip().lower().lstrip('#')
+        if not cleaned_tag or " " in cleaned_tag:
+            raise InvalidTagFormatError(f"Invalid tag: '{tag}'. Tags cannot be empty or contain spaces.")
+        
+        return  [note for note in self.data.values() if cleaned_tag in note.tags]
+    
+    def sort_notes_by_title(self) -> list[Note]:
+        """Returns all notes sorted by title."""
+        return sorted(self.data.values(), key=lambda note: note.title.lower())
+    
+    def sort_notes_by_tag_count(self) -> list[Note]:
+        """Returns all notes sorted by tag count (descending), using title as a tie-breaker."""
+        return sorted(self.data.values(), key=lambda note: (-len(note.tags), note.title.lower()))
+
+       
             
