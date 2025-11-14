@@ -241,7 +241,7 @@ def add_note(args: List[str], notes: NoteBook) -> str:
     if hash_index != -1:
         content = rest[:hash_index].strip()
         tags_part = rest[hash_index:]
-        tags = [tag.lstrip('#') for tag in tags_part.split()] # if tag.startswith('#') -  add-note amynote4 bla-bla #tag1 tag2 - do we want tag2 aplied or not?
+        tags = [tag.lstrip('#') for tag in tags_part.split() if tag.startswith('#')]
     else:
         content = rest.strip()
         tags = []
@@ -313,13 +313,13 @@ def find_notes_by_tag(args: List[str], notes: NoteBook) -> str:
     if len(args) < 1:
        raise ValueError("Invalid format. Command requires a tag.")
     
-    tag = args[0]
+    tag_query = " ".join(args)
 
-    filtered = notes.find_notes_by_tag(tag)
+    filtered = notes.find_notes_by_tag(tag_query)
     if not filtered:
-        return F"No notes with tag {tag} found."
+        return F"No notes with tag {tag_query} found."
     
-    return show_notes_table(f"Notes with tag {tag}", filtered)
+    return show_notes_table(f"Notes with tag {tag_query}", filtered)
    
 
 @input_error
@@ -339,7 +339,7 @@ def show_notes_table(tableTitle: str, notes: list[Note]):
     result = f"{tableTitle}:\n"
     for note in notes:
         result += f"{note}\n"
-        result += f"{'*' * 10}\n"
+        result += f"{'-' * 40}\n"
     return result.strip()
 
 
