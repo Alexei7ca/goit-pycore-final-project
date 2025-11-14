@@ -140,9 +140,6 @@ class Record:
         else:
             raise PhoneNotFoundError(f"⚠️ Phone {phone_number} not found.")
         
-    def add_birthday(self, birthday_str: str) -> None:
-        self.birthday = Birthday(birthday_str)
-
     def add_email(self, email_str: str) -> None:
         self.email = Email(email_str)
 
@@ -235,8 +232,8 @@ class Note:
     def __init__(self, title: str, content: str, tags: list[str] | set[str] = None ):
         if not title:
             raise ValueError("Note title cannot be empty")
-        self.__title = title.lower() # store the title (ID)
-        self.content = content.lower()
+        self.__title = title # store the title (ID)
+        self.content = content
         # Store tags as a set to avoid duplicates
         self.tags = set()
         if tags:
@@ -275,30 +272,31 @@ class Note:
 class NoteBook(UserDict):
     data: dict[str, Note]
 
+    def _key(self, title: str) -> str:
+        return title.strip().casefold()
+
     def add_note(self, note: Note):
-        self.data[str(note.title).lower()] = note
+        self.data[self._key(note.title)] = note
 
     def find_note_by_id(self, title: str):
-        return self.data.get(title.lower())
+        return self.data.get(self._key(title))
 
     def edit_note_text(self, title: str, new_text:str):
-        standardized_title = title.lower()
-        note = self.data.get(standardized_title)
+        note = self.find_note_by_id(title)
         if note:
-            note.content = new_text.lower()
+            note.content = new_text
         else:
             raise NoteNotFoundError(f"Note {title} not found.")
 
     def delete_note(self, title: str):
-        standardized_title = title.lower()
-        if standardized_title in self.data:
-            del self.data[standardized_title]
+        key = self._key(title)
+        if key in self.data:
+            del self.data[key]
         else:
             raise NoteNotFoundError(f"Note {title} not found.")
         
     def add_tag_to_note(self, title: str, tags: list[str] | set[str]):
-        standardized_title = title.lower()
-        note = self.data.get(standardized_title)
+        note = self.find_note_by_id(title)
         if not note:
             raise NoteNotFoundError(f"Note {title} not found.")
         
@@ -306,8 +304,7 @@ class NoteBook(UserDict):
             note.add_tag(tag)
 
     def remove_tag_from_note(self, title: str, tag: str):
-        standardized_title = title.lower()
-        note = self.data.get(standardized_title)
+        note = self.find_note_by_id(title)
         if not note:
             raise NoteNotFoundError(f"Note {title} not found.")
         

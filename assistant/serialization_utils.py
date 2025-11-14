@@ -1,6 +1,6 @@
 import pickle
 from typing import Tuple
-from models import AddressBook, NoteBook
+from .models import AddressBook, NoteBook
 
 # filename for persistence
 FILENAME = "assistant_data.pkl"
