@@ -5,11 +5,12 @@ A sophisticated command-line application designed to streamline personal informa
 ## Table of Contents
 
 - [About The Project](#about-the-project)
+- [Graphical User Interface (GUI)](#graphical-user-interface-gui)
 - [Core Features](#core-features)
 - [Architectural Overview](#architectural-overview)
   - [Data Modeling (`models.py`)](#data-modeling-modelspy)
   - [Command Handling (`main.py`)](#command-handling-mainpy)
-  - [Error Handling](#error-handling)
+- [Error Handling](#error-handling)
   - [Data Persistence](#data-persistence)
 - [Project Structure](#project-structure)
 - [Getting Started](#getting-started)
@@ -24,6 +25,12 @@ A sophisticated command-line application designed to streamline personal informa
 ## About The Project
 
 The Personal Assistant Bot is a powerful tool for managing contacts and notes directly from your terminal. It was built to provide a fast, efficient, and keyboard-driven interface for common organizational tasks. The application saves all data locally, ensuring privacy and offline access. It is designed with a clean, modular architecture, making it both easy to use and straightforward to extend.
+
+## Graphical User Interface (GUI)
+
+In addition to the command-line interface, this project also features a modern, user-friendly graphical interface for those who prefer a visual workflow.
+
+For detailed setup and usage instructions specifically for the GUI, please see the **[GUI README](GUI_README.md)**.
 
 ## Core Features
 

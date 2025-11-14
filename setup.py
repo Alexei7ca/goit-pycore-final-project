@@ -6,10 +6,11 @@ setup(
     description='A comprehensive command-line assistant for managing contacts and notes.',
     author='project-group-10',
     packages=find_packages(),
-    install_requires=[],  # No external dependencies required for this project
+    install_requires=['customtkinter'],
     entry_points={
         'console_scripts': [
             'assistant-bot = assistant.main:main',
+            'assistant-gui = assistant.gui:main',
         ],
     },
     classifiers=[
