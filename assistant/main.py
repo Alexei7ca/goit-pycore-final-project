@@ -1,9 +1,9 @@
 from typing import Dict, List, Callable, Tuple
-from models import (
+from .models import (
     AddressBook, Record, AssistantBotError, ContactNotFoundError, 
     InvalidPhoneFormatError, Note, NoteBook
 )
-from serialization_utils import save_data, load_data
+from .serialization_utils import save_data, load_data
 
 def input_error(func: Callable) -> Callable:
     """A decorator to handle common user input errors gracefully."""
