@@ -5,20 +5,29 @@ from .models import AddressBook, NoteBook, Record, Note, DataValidationError
 # These functions are not decorated with @input_error, so they will
 # raise exceptions that the GUI can catch and display in a message box.
 
-def add_contact_gui(name: str, phone: str, email: str, address: str, book: AddressBook):
+def add_contact_gui(name: str, phones_str: str, email: str, address: str, birthday: str, book: AddressBook):
     """
-    Adds a contact. Raises DataValidationError on failure.
+    Adds a contact. Handles multiple comma-separated phones. Raises DataValidationError on failure.
     """
     if book.find(name):
-        # For GUI, adding to an existing contact is better handled by "Edit"
         raise DataValidationError(f"Contact '{name}' already exists. Use Edit instead.")
 
     record = Record(name)
-    record.add_phone(phone) # This can raise InvalidPhoneFormatError
+    
+    # Add multiple phones
+    phone_numbers = [p.strip() for p in phones_str.split(',')]
+    if not phone_numbers or not phone_numbers[0]:
+        raise DataValidationError("At least one phone number is required.")
+    for p_num in phone_numbers:
+        record.add_phone(p_num)
+
     if email:
-        record.add_email(email) # This can raise InvalidEmailFormatError
+        record.add_email(email)
     if address:
         record.add_address(address)
+    if birthday:
+        record.add_birthday(birthday)
+        
     book.add_record(record)
 
 def add_note_gui(title: str, content: str, tags: List[str], notes: NoteBook):
@@ -28,30 +37,31 @@ def add_note_gui(title: str, content: str, tags: List[str], notes: NoteBook):
     if notes.find_note_by_id(title):
         raise DataValidationError(f"Note with title '{title}' already exists. Use Edit instead.")
     
-    note = Note(title, content, tags) # This can raise InvalidTagFormatError
+    note = Note(title, content, tags)
     notes.add_note(note)
 
-def edit_contact_gui(record: Record, new_phone: str, new_email: str, new_address: str):
+def edit_contact_gui(record: Record, new_phones_str: str, new_email: str, new_address: str, new_birthday: str):
     """
     Safely edits a contact's fields in place. Raises DataValidationError on failure.
     """
-    # Validate and update phone
-    if new_phone and new_phone != (record.phones[0].value if record.phones else ""):
-        # For simplicity, we assume editing the first phone.
-        # A more complex UI would handle multiple phones.
-        original_phone = record.phones[0].value if record.phones else None
-        if original_phone:
-            record.edit_phone(original_phone, new_phone)
-        else:
-            record.add_phone(new_phone)
+    # For simplicity, we clear old phones and add the new ones.
+    new_phone_numbers = [p.strip() for p in new_phones_str.split(',')]
+    if not new_phone_numbers or not new_phone_numbers[0]:
+        raise DataValidationError("At least one phone number is required.")
 
-    # Validate and update email
+    record.phones.clear()
+    for p_num in new_phone_numbers:
+        record.add_phone(p_num)
+
     if new_email != (record.email.value if record.email else ""):
         record.add_email(new_email)
 
-    # Update address (no validation in model)
     if new_address != (record.address.value if record.address else ""):
         record.add_address(new_address)
+        
+    if new_birthday != (str(record.birthday) if record.birthday else ""):
+        record.add_birthday(new_birthday)
+
 
 def edit_note_gui(note: Note, new_content: str, new_tags: List[str]):
     """
@@ -59,24 +69,31 @@ def edit_note_gui(note: Note, new_content: str, new_tags: List[str]):
     """
     note.content = new_content
     
-    # Re-create tags from scratch
     note.tags.clear()
     for tag in new_tags:
-        note.add_tag(tag) # This can raise InvalidTagFormatError
+        note.add_tag(tag)
 
-def search_notes_by_tag_gui(query: str, notes: NoteBook) -> List[Note]:
+def search_notes_by_multiple_tags_gui(query_str: str, notes: NoteBook) -> List[Note]:
     """
-    Finds notes where any tag starts with the query string (partial match).
+    Finds notes that match ALL of the comma-separated partial tags.
+    e.g., "work, ur" will match a note with tags {#work, #urgent}.
     """
-    cleaned_query = query.strip().lower().lstrip('#')
-    if not cleaned_query:
+    query_tags = [tag.strip().lower().lstrip('#') for tag in query_str.split(',') if tag.strip()]
+    if not query_tags:
         return []
     
     results = []
     for note in notes.data.values():
-        if any(tag.startswith(cleaned_query) for tag in note.tags):
+        # Check if for every query_tag, at least one of the note's tags starts with it.
+        if all(any(note_tag.startswith(query_tag) for note_tag in note.tags) for query_tag in query_tags):
             results.append(note)
     return results
+
+def get_birthdays_gui(days: int, book: AddressBook) -> str:
+    """
+    Returns a formatted string of upcoming birthdays.
+    """
+    return book.get_upcoming_birthdays(days)
 
 def delete_contact_gui(name: str, book: AddressBook):
     """Deletes a contact, raising ContactNotFoundError on failure."""
