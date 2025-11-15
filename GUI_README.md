@@ -8,11 +8,12 @@ This document provides specific instructions for setting up and running the grap
 - [Critical Prerequisite: Python with Tkinter/Tcl Support](#critical-prerequisite-python-with-tkintertcl-support)
 - [Step-by-Step Installation](#step-by-step-installation)
 - [Running the Application](#running-the-application)
+- [Appearance](#appearance)
 - [GUI Features](#gui-features)
 
 ## GUI Overview
 
-The GUI provides a user-friendly, visual way to interact with your address book and notes. It is built with [CustomTkinter](https://github.com/TomSchimansky/CustomTkinter), which provides a modern look and feel. All functionality from the command-line version is available through an intuitive, clickable interface.
+The GUI provides a user-friendly, visual way to interact with your address book and notes. It is built with [CustomTkinter](https://github.com/TomSchimansky/CustomTkinter), which provides a modern look and feel. All core functionality from the command-line version is available through an intuitive, clickable interface.
 
 ## Critical Prerequisite: Python with Tkinter/Tcl Support
 
@@ -76,16 +77,34 @@ Once the installation is complete, you can run the GUI with the following comman
 assistant-gui
 ```
 
-The application window should appear, ready to use.
+## Appearance
+
+- **Welcome Guide**: On first launch, the application displays a pop-up with a quick guide to its features.
+- **Forced Dark Mode**: The application is permanently set to a dark theme to ensure a consistent and readable user experience across all systems.
 
 ## GUI Features
 
 - **Tabbed Interface**: Contacts and Notes are neatly separated into their own tabs.
-- **Live Search**: The lists automatically filter as you type in the search bars.
-- **Interactive Lists**: Click any contact or note to see its full details. The selected item is highlighted.
-- **Full CRUD Operations**:
-  - **Add**: Click "Add" to open a pop-up window with fields for new data.
-  - **Edit**: Select an item and click "Edit" to open a pre-filled pop-up to modify it.
-  - **Delete**: Select an item and click "Delete" to remove it (a confirmation dialog will appear to prevent accidents).
-- **Safe Error Handling**: If you enter invalid data (e.g., a bad phone number or tag), an error message will appear without closing the window, allowing you to correct the mistake.
+
+- **Live Search**:
+  - **Contacts**: The contact list automatically filters as you type in the search bar, checking against names, phone numbers, and emails.
+  - **Notes**: The note list filters by tags. You can search for multiple tags by separating them with a comma (e.g., `work, urgent`). The search is partial, so typing `urg` will match the `#urgent` tag.
+
+- **Interactive Lists**:
+  - Click any contact or note to see its full details in the main text view.
+  - The selected item is highlighted for clarity.
+  - The note list is sorted chronologically, with the most recently added notes appearing at the top.
+
+- **Full Contact Management**:
+  - **Add/Edit**: A pop-up window allows you to add or edit contacts.
+    - You can add multiple phone numbers by separating them with a comma.
+    - You can add an optional birthday in `DD.MM.YYYY` format.
+  - **Delete**: Select a contact and click "Delete" to remove it (a confirmation dialog will appear).
+  - **Birthday Search**: Click the "Upcoming Birthdays" button to open a dialog and find contacts with birthdays in the next N days.
+
+- **Full Note Management**:
+  - **Add/Edit**: A pop-up window allows you to add or edit a note's title, content, and tags.
+
+- **Safe Error Handling**: If you enter invalid data (e.g., a bad phone number format or an invalid date), an error message will appear without closing the pop-up window, allowing you to correct the mistake.
+
 - **Data Persistence**: All changes are automatically saved to `assistant_data.pkl` when you close the application.
