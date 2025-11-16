@@ -1,9 +1,12 @@
 import pickle
 from typing import Tuple
-from .models import AddressBook, NoteBook
+from pathlib import Path
+from assistant.models import AddressBook, NoteBook
 
-# filename for persistence
-FILENAME = "assistant_data.pkl"
+# Create a robust, absolute path for the data file in the user's home directory
+DATA_DIR = Path.home() / ".personal_assistant"
+DATA_DIR.mkdir(exist_ok=True)  # Ensure the directory exists
+FILENAME = DATA_DIR / "assistant_data.pkl"
 
 def save_data(book: AddressBook, notes: NoteBook):
     """Saves both AddressBook and NoteBook objects to a file using pickle."""

@@ -1,22 +1,32 @@
+"""
+Backend logic for the GUI.
+
+This module contains functions that are called directly by the GUI's event handlers.
+These functions interact with the data models (AddressBook, NoteBook) and are
+designed to raise exceptions on validation or other errors, which the GUI can then
+catch and display to the user in a message box.
+"""
 from typing import List
-from .models import AddressBook, NoteBook, Record, Note, DataValidationError
 
-# This file contains backend logic specifically for the GUI.
-# These functions are not decorated with @input_error, so they will
-# raise exceptions that the GUI can catch and display in a message box.
+from assistant.models import AddressBook, NoteBook, Record, Note, DataValidationError
 
-def add_contact_gui(name: str, phones_str: str, email: str, address: str, birthday: str, book: AddressBook):
+
+def add_contact_gui(
+    name: str, phones_str: str, email: str, address: str, birthday: str, book: AddressBook
+):
     """
-    Adds a contact. Handles multiple comma-separated phones. Raises DataValidationError on failure.
+    Adds a contact. Handles multiple comma-separated phones.
+
+    Raises:
+        DataValidationError: If contact already exists or data is invalid.
     """
     if book.find(name):
         raise DataValidationError(f"Contact '{name}' already exists. Use Edit instead.")
 
     record = Record(name)
-    
-    # Add multiple phones
-    phone_numbers = [p.strip() for p in phones_str.split(',')]
-    if not phone_numbers or not phone_numbers[0]:
+
+    phone_numbers = [p.strip() for p in phones_str.split(',') if p.strip()]
+    if not phone_numbers:
         raise DataValidationError("At least one phone number is required.")
     for p_num in phone_numbers:
         record.add_phone(p_num)
@@ -27,26 +37,35 @@ def add_contact_gui(name: str, phones_str: str, email: str, address: str, birthd
         record.add_address(address)
     if birthday:
         record.add_birthday(birthday)
-        
+
     book.add_record(record)
+
 
 def add_note_gui(title: str, content: str, tags: List[str], notes: NoteBook):
     """
-    Adds a note. Raises DataValidationError on failure.
+    Adds a note.
+
+    Raises:
+        DataValidationError: If a note with the same title already exists.
     """
     if notes.find_note_by_id(title):
         raise DataValidationError(f"Note with title '{title}' already exists. Use Edit instead.")
-    
+
     note = Note(title, content, tags)
     notes.add_note(note)
 
-def edit_contact_gui(record: Record, new_phones_str: str, new_email: str, new_address: str, new_birthday: str):
+
+def edit_contact_gui(
+    record: Record, new_phones_str: str, new_email: str, new_address: str, new_birthday: str
+):
     """
-    Safely edits a contact's fields in place. Raises DataValidationError on failure.
+    Safely edits a contact's fields in place.
+
+    Raises:
+        DataValidationError: If new data is invalid.
     """
-    # For simplicity, we clear old phones and add the new ones.
-    new_phone_numbers = [p.strip() for p in new_phones_str.split(',')]
-    if not new_phone_numbers or not new_phone_numbers[0]:
+    new_phone_numbers = [p.strip() for p in new_phones_str.split(',') if p.strip()]
+    if not new_phone_numbers:
         raise DataValidationError("At least one phone number is required.")
 
     record.phones.clear()
@@ -58,20 +77,24 @@ def edit_contact_gui(record: Record, new_phones_str: str, new_email: str, new_ad
 
     if new_address != (record.address.value if record.address else ""):
         record.add_address(new_address)
-        
+
     if new_birthday != (str(record.birthday) if record.birthday else ""):
         record.add_birthday(new_birthday)
 
 
 def edit_note_gui(note: Note, new_content: str, new_tags: List[str]):
     """
-    Edits a note's content and tags. Raises DataValidationError on failure.
+    Edits a note's content and tags.
+
+    Raises:
+        DataValidationError: If new tags are in an invalid format.
     """
     note.content = new_content
-    
+
     note.tags.clear()
     for tag in new_tags:
         note.add_tag(tag)
+
 
 def search_notes_by_multiple_tags_gui(query_str: str, notes: NoteBook) -> List[Note]:
     """
@@ -81,7 +104,7 @@ def search_notes_by_multiple_tags_gui(query_str: str, notes: NoteBook) -> List[N
     query_tags = [tag.strip().lower().lstrip('#') for tag in query_str.split(',') if tag.strip()]
     if not query_tags:
         return []
-    
+
     results = []
     for note in notes.data.values():
         # Check if for every query_tag, at least one of the note's tags starts with it.
@@ -89,16 +112,27 @@ def search_notes_by_multiple_tags_gui(query_str: str, notes: NoteBook) -> List[N
             results.append(note)
     return results
 
+
 def get_birthdays_gui(days: int, book: AddressBook) -> str:
-    """
-    Returns a formatted string of upcoming birthdays.
-    """
+    """Returns a formatted string of upcoming birthdays."""
     return book.get_upcoming_birthdays(days)
 
+
 def delete_contact_gui(name: str, book: AddressBook):
-    """Deletes a contact, raising ContactNotFoundError on failure."""
+    """
+    Deletes a contact.
+
+    Raises:
+        ContactNotFoundError: If the contact does not exist.
+    """
     book.delete(name)
 
+
 def delete_note_gui(title: str, notes: NoteBook):
-    """Deletes a note, raising NoteNotFoundError on failure."""
+    """
+    Deletes a note.
+
+    Raises:
+        NoteNotFoundError: If the note does not exist.
+    """
     notes.delete_note(title)

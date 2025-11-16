@@ -36,6 +36,8 @@ def run_test(function: Callable, args: List, context_obj):
         # Pass the correct context object (AddressBook or NoteBook) to the function
         if command_name in ["hello_command"]:
              result = function()
+        elif command_name in ["show_all", "show_all_notes"]:
+             result = function(context_obj)
         elif hasattr(context_obj, 'data') and isinstance(context_obj.data, dict):
             if "note" in command_name:
                 result = function(args, context_obj)
