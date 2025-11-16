@@ -1,9 +1,14 @@
+"""Main module for the Personal Assistant CLI.
+
+Handles command parsing, execution, and user interaction."""
 from typing import Dict, List, Callable, Tuple
-from .models import (
-    AddressBook, Record, AssistantBotError, ContactNotFoundError, 
+
+from assistant.models import (
+    AddressBook, Record, AssistantBotError, ContactNotFoundError,
     InvalidPhoneFormatError, Note, NoteBook
 )
-from .serialization_utils import save_data, load_data
+from assistant.serialization_utils import save_data, load_data
+
 
 def input_error(func: Callable) -> Callable:
     """A decorator to handle common user input errors gracefully."""
@@ -12,27 +17,32 @@ def input_error(func: Callable) -> Callable:
             return func(*args, **kwargs)
         except (ValueError, IndexError, TypeError) as e:
             # Catch errors related to missing arguments or bad format
-            if "not enough values to unpack" in str(e) or "Invalid format" in str(e) or "missing a required argument" in str(e):
+            if "not enough values to unpack" in str(e) or \
+               "Invalid format" in str(e) or \
+               "missing a required argument" in str(e):
                 return "Invalid command format. Please provide necessary arguments."
             return f"Error with input data: {e}"
-        # Catch specific custom errors from models.py
         except AssistantBotError as e:
-            # This catches all custom exceptions (ContactNotFoundError, NoteNotFoundError, etc.)
+            # This catches all custom exceptions
             return str(e)
         except Exception as e:
             # Catch any other unexpected errors
             return f"An unexpected error occurred: {e}"
     return inner
 
+
 def parse_input(user_input: str) -> Tuple[str, List[str]]:
-    """Parses the user input into a command and arguments."""
+    """
+    Parses the user input into a command and its arguments.
+    Handles special multi-word commands.
+    """
     parts = user_input.split()
     if not parts:
         return "", []
 
     cmd = parts[0].strip().lower()
     args = parts[1:]
-    
+
     # Handle multi-word commands (e.g., "show all")
     if cmd == "show" and args and args[0].lower() == "all":
         return "all", []
@@ -40,75 +50,83 @@ def parse_input(user_input: str) -> Tuple[str, List[str]]:
         return "add-birthday", args[1:]
     if cmd == "show" and args and args[0].lower() == "birthday":
         return "show-birthday", args[1:]
-        
+
     return cmd, args
 
-# --- CRUD commands ---
+# --- Contact Management Commands ---
+
 
 @input_error
 def add_contact(args: List[str], book: AddressBook) -> str:
     """
-    Adds a new contact with at least a name and a phone number.
-    Format: add <name> <phone> [email] [address]
+    Adds a new contact or adds a new phone to an existing contact.
+
+    Args:
+        args (List[str]): Expected format: [<name>, <phone>, [email], [address]]
+        book (AddressBook): The address book instance.
+
+    Returns:
+        str: A confirmation message.
     """
     if len(args) < 2:
         raise ValueError("Invalid format. Command requires at least a name and phone number.")
-        
+
     name, phone, *optional_fields = args
     existing_record = book.find(name)
     is_new = existing_record is None
-    message = "" # Initialize empty message
+    message = ""
 
-    # 1. Determine which record to work with
     record = existing_record if not is_new else Record(name)
-        
-    # 2. Attempt to validate and add the phone number
+
     try:
         record.add_phone(phone)
     except InvalidPhoneFormatError as e:
-        # If phone format failed, return error message immediately
         if is_new:
             return f"Contact '{name}' NOT created. Phone number format error: {e}"
-        else:
-            return f"Phone NOT added to '{name}'. Format error: {e}"
-    
-    # 3. If phone addition was successful:
+        return f"Phone NOT added to '{name}'. Format error: {e}"
+
     if is_new:
         book.add_record(record)
         message = f"Contact '{name}' added."
     else:
         message = f"Phone {phone} added to existing contact '{name}'."
 
-    # 4. Handle optional fields (Email and Address)
     if optional_fields:
         email = optional_fields[0]
-        record.add_email(email) 
+        record.add_email(email)
         message += f" Email: {email} added."
-        
+
     if len(optional_fields) > 1:
         address_parts = " ".join(optional_fields[1:])
-        record.add_address(address_parts) 
+        record.add_address(address_parts)
         message += f" Address: {address_parts} added."
-        
+
     return message
+
 
 @input_error
 def change_contact(args: List[str], book: AddressBook) -> str:
     """
     Changes an existing contact's old phone number to a new one.
-    Format: change <name> <old_phone> <new_phone>
+
+    Args:
+        args (List[str]): Expected format: [<name>, <old_phone>, <new_phone>]
+        book (AddressBook): The address book instance.
+
+    Returns:
+        str: A confirmation message.
     """
     if len(args) < 3:
         raise ValueError("Invalid format. Command requires a name, old phone, and new phone.")
-        
+
     name, old_phone, new_phone, *_ = args
     record = book.find(name)
-    
+
     if record is None:
         raise ContactNotFoundError(f"Contact '{name}' not found.")
-        
+
     record.edit_phone(old_phone, new_phone)
-    
+
     return f"Phone number for '{name}' successfully changed from {old_phone} to {new_phone}."
 
 
@@ -116,79 +134,71 @@ def change_contact(args: List[str], book: AddressBook) -> str:
 def show_contact_detail(args: List[str], book: AddressBook) -> str:
     """
     Shows the full details for a specific contact.
-    Format: show <name>
+
+    Args:
+        args (List[str]): Expected format: [<name>]
+        book (AddressBook): The address book instance.
+
+    Returns:
+        str: The contact's details.
     """
     if len(args) < 1:
         raise ValueError("Invalid format. Command requires a name.")
-        
+
     name = args[0]
     record = book.find(name)
-    
+
     if record is None:
         raise ContactNotFoundError(f"Contact '{name}' not found.")
-        
-    # Assumes Record.__str__ provides a detailed view of all fields
+
     return str(record)
 
+
 def show_all(book: AddressBook) -> str:
-    """
-    Shows all contacts in the address book.
-    """
+    """Shows all contacts in the address book."""
     if not book.data:
         return "The address book is empty."
-        
+
     result = "All contacts:\n"
     for record in book.data.values():
         result += f"{record}\n"
-        
+
     return result.strip()
+
 
 @input_error
 def delete_contact(args: List[str], book: AddressBook) -> str:
     """
     Deletes a contact record from the address book.
-    Format: delete <name>
+
+    Args:
+        args (List[str]): Expected format: [<name>]
+        book (AddressBook): The address book instance.
+
+    Returns:
+        str: A confirmation message.
     """
     if len(args) < 1:
         raise ValueError("Invalid format. Command requires a name.")
-        
+
     name = args[0]
     book.delete(name)
-    
+
     return f"Contact '{name}' deleted successfully."
 
 
-def hello_command() -> str:
-    """Displays a welcome message and a command manual."""
-    manual = """
-Hello! Welcome to the Personal Assistant bot. Here are the available commands:
-| Command        | Arguments                    | Example                       | Description                               |
-| :------------- | :--------------------------- | :---------------------------- | :---------------------------------------- |
-| hello          |                              | hello                         | Displays this manual.                     |
-| add     | <Name> <Phone> [Email] [Address...] | add John 1234567890 john@mail | Adds a new contact or phone (with optional email/address).|
-| change         | <Name> <Old Phone> <New P>   | change John 123.. 098..       | Updates an existing contact's phone.      |
-| show           | <Name>                       | show John                     | Shows a contact's full details.           |
-| all            |                              | all                           | Lists all saved contacts.                 |
-| delete         | <Name>                       | delete John                   | Deletes a contact.                        |
-| add-birthday   | <Name> <DD.MM.YYYY>          | add-birthday John 01.01.1990  | Adds contact birthday.                    |
-| show-birthday  | <Name>                       | show-birthday John            | Shows contact birthday.                   |
-| birthdays      | [days]                       | birthdays 14                  | Shows upcoming birthdays.                 |
-| close          |                              | close                         | Exits the bot (data will be saved).       |
-| exit           |                              | exit                          | Exits the bot (data will be saved).       |
-| add-note       | <title> <content> #tag1 #tag2| add-note Shopping Eggs Milk   | Adds a new note.                          |
-| edit-note      | <title> <new_content>        | edit-note Shopping, Milk, Tea | Edits an existing note.                   |
-| delete-note    | <title>                      | delete-note Shopping          | Deletes a note.                           |
-| add-tag        | <title> #tag1 #tag2 ...      | add-tag shopping #urgent #home| Adds tags to existing note.               |
-| remove-tag     | <title> #tag1                | remove-tag shopping #urgent   | Remove tag from existing note.            |
-| find-notes-by-tag | #tag1                     | find-notes-by-tag #urgent     | Shows notes filtered by tag               |
-| show-notes-sorted | [sort_key]                | show-notes-sorted tags        | shows a list of all notes sorted based on sort_key |
-| show-all-notes |                              | show-all-notes                | Lists all notes.                          |
-"""
-    return manual
-
 @input_error
 def add_birthday(args: List[str], book: AddressBook) -> str:
-    """Adds or updates a birthday for a contact. Format: add-birthday <Name> <DD.MM.YYYY>"""
+    """
+    Adds or updates a birthday for a contact.
+
+    Args:
+        args (List[str]): Expected format: [<name>, <DD.MM.YYYY>]
+        book (AddressBook): The address book instance.
+
+    Returns:
+        str: A confirmation message.
+    """
     if len(args) < 2:
         raise ValueError("Invalid format. Command requires a name and a date (DD.MM.YYYY).")
 
@@ -203,7 +213,16 @@ def add_birthday(args: List[str], book: AddressBook) -> str:
 
 @input_error
 def show_birthday(args: List[str], book: AddressBook) -> str:
-    """Shows a contact's birthday. Format: show-birthday <Name>"""
+    """
+    Shows a contact's birthday.
+
+    Args:
+        args (List[str]): Expected format: [<name>]
+        book (AddressBook): The address book instance.
+
+    Returns:
+        str: The contact's birthday information.
+    """
     if len(args) < 1:
         raise ValueError("Invalid format. Command requires a name.")
 
@@ -217,9 +236,17 @@ def show_birthday(args: List[str], book: AddressBook) -> str:
 
 @input_error
 def birthdays(args: List[str], book: AddressBook) -> str:
-    """Shows upcoming birthdays within N days (default 7). Format: birthdays [days]"""
-    # Safely check for an argument and assign 7 if none is provided.
-    days = 7 
+    """
+    Shows upcoming birthdays within N days. Defaults to 7 days.
+
+    Args:
+        args (List[str]): Expected format: [[days]]
+        book (AddressBook): The address book instance.
+
+    Returns:
+        str: A list of upcoming birthdays.
+    """
+    days = 7
     if args:
         try:
             days = int(args[0])
@@ -231,7 +258,16 @@ def birthdays(args: List[str], book: AddressBook) -> str:
 
 @input_error
 def search_command(args: List[str], book: AddressBook) -> str:
-    """Searches contacts by name, phone, email, or address. Format: search <query>"""
+    """
+    Searches contacts by name, phone, email, or address.
+
+    Args:
+        args (List[str]): The search query.
+        book (AddressBook): The address book instance.
+
+    Returns:
+        str: A list of matching contacts.
+    """
     if len(args) < 1:
         raise ValueError("Invalid format. Command requires a search query.")
 
@@ -241,21 +277,30 @@ def search_command(args: List[str], book: AddressBook) -> str:
         return "No contacts found."
     return "\n".join(str(r) for r in results)
 
+# --- Note Management Commands ---
+
+
 @input_error
 def add_note(args: List[str], notes: NoteBook) -> str:
-    """Adds a new note or overwrites an existing one. Format: add-note <title> <content> #tag1 #tag2"""
+    """
+    Adds a new note or overwrites an existing one.
+
+    Args:
+        args (List[str]): Expected format: [<title>, <content>, [#tags...]]
+        notes (NoteBook): The notebook instance.
+
+    Returns:
+        str: A confirmation message.
+    """
     if len(args) < 2:
         raise ValueError("Invalid format. Command requires a title and content.")
-    
+
     title = args[0]
-    
-    # 1. Check if the note exists BEFORE processing the new input
     note_exists = notes.find_note_by_id(title) is not None
-    
-    # 2. Extract content and tags (existing logic)
+
     rest = " ".join(args[1:])
     hash_index = rest.find('#')
-    
+
     if hash_index != -1:
         content = rest[:hash_index].strip()
         tags_part = rest[hash_index:]
@@ -264,115 +309,210 @@ def add_note(args: List[str], notes: NoteBook) -> str:
         content = rest.strip()
         tags = []
 
-    # 3. Create the new Note object and add/overwrite it
     note = Note(title, content, tags)
     notes.add_note(note)
-    
-    # 4. Return the correct status message
+
     if note_exists:
         return f"Note '{title}' updated successfully."
-    else:
-        return f"Note '{title}' added successfully."
+    return f"Note '{title}' added successfully."
+
 
 @input_error
 def edit_note(args: List[str], notes: NoteBook) -> str:
-    """Edits a note's content. Format: edit-note <title> <new_content>"""
+    """
+    Edits a note's content.
+
+    Args:
+        args (List[str]): Expected format: [<title>, <new_content>]
+        notes (NoteBook): The notebook instance.
+
+    Returns:
+        str: A confirmation message.
+    """
     if len(args) < 2:
-       raise ValueError("Invalid format. Command requires a title and a new content.") 
-    
+        raise ValueError("Invalid format. Command requires a title and a new content.")
+
     title = args[0]
     new_content = " ".join(args[1:])
 
     notes.edit_note_text(title, new_content)
     return f"Note '{title}' updated successfully."
 
+
 @input_error
 def delete_note(args: List[str], notes: NoteBook) -> str:
-    """Deletes a note by title. Format: delete-note <title>"""
+    """
+    Deletes a note by title.
+
+    Args:
+        args (List[str]): Expected format: [<title>]
+        notes (NoteBook): The notebook instance.
+
+    Returns:
+        str: A confirmation message.
+    """
     if len(args) < 1:
         raise ValueError("Invalid format. Command requires a title.")
-    
+
     title = args[0]
     notes.delete_note(title)
     return f"Note '{title}' deleted successfully."
+
 
 @input_error
 def show_all_notes(notes: NoteBook) -> str:
     """Displays all notes."""
     if not notes.data:
         return "No notes found."
-    
+
     result = "All notes:\n"
     for note in notes.data.values():
         result += f"{note}\n"
     return result.strip()
 
+
 @input_error
 def add_note_tag(args: List[str], notes: NoteBook) -> str:
-    """Adds tags to a note. Format: add-tag <title> #tag1 #tag2 ..."""
+    """
+    Adds tags to a note.
+
+    Args:
+        args (List[str]): Expected format: [<title>, #tag1, #tag2, ...]
+        notes (NoteBook): The notebook instance.
+
+    Returns:
+        str: A confirmation message.
+    """
     if len(args) < 2:
-       raise ValueError("Invalid format. Command requires a title and at least one tag.") 
-    
+        raise ValueError("Invalid format. Command requires a title and at least one tag.")
+
     title = args[0]
     tags = args[1:]
 
     notes.add_tag_to_note(title, tags)
     return f"Note '{title}' updated successfully."
 
+
 @input_error
 def remove_note_tag(args: List[str], notes: NoteBook) -> str:
-    """Removes tag from a note. Format: remove-tag <title> #tag1"""
+    """
+    Removes a tag from a note.
+
+    Args:
+        args (List[str]): Expected format: [<title>, #tag1]
+        notes (NoteBook): The notebook instance.
+
+    Returns:
+        str: A confirmation message.
+    """
     if len(args) < 2:
-       raise ValueError("Invalid format. Command requires a title and a tag.") 
-    
+        raise ValueError("Invalid format. Command requires a title and a tag.")
+
     title = args[0]
     tag = args[1].lstrip('#')
 
     notes.remove_tag_from_note(title, tag)
     return f"Note '{title}' updated successfully."
 
+
 @input_error
 def find_notes_by_tag(args: List[str], notes: NoteBook) -> str:
-    """Displays notes filtered by tag. Format: find-by-tag #tag1"""
+    """
+    Displays notes filtered by tag.
+
+    Args:
+        args (List[str]): Expected format: [#tag]
+        notes (NoteBook): The notebook instance.
+
+    Returns:
+        str: A formatted table of matching notes.
+    """
     if len(args) < 1:
-       raise ValueError("Invalid format. Command requires a tag.")
-    
+        raise ValueError("Invalid format. Command requires a tag.")
+
     tag_query = " ".join(args)
 
     filtered = notes.find_notes_by_tag(tag_query)
     if not filtered:
-        return F"No notes with tag {tag_query} found."
-    
+        return f"No notes with tag {tag_query} found."
+
     return show_notes_table(f"Notes with tag {tag_query}", filtered)
-   
+
 
 @input_error
 def show_notes_sorted(args: List[str], notes: NoteBook) -> str:
-    """Displays all notes sorted based on sort_key. Format: show_notes_sorted [sort_key]"""
+    """
+    Displays all notes sorted by a key.
+
+    Args:
+        args (List[str]): Expected format: [[sort_key]], where sort_key is 'title' or 'tags'.
+        notes (NoteBook): The notebook instance.
+
+    Returns:
+        str: A formatted table of sorted notes.
+    """
     sort_key = args[0].lower() if args else "title"
 
     if sort_key == 'tags':
-        sorted = notes.sort_notes_by_tag_count()
+        sorted_notes = notes.sort_notes_by_tag_count()
     else:
-        sorted = notes.sort_notes_by_title()
+        sorted_notes = notes.sort_notes_by_title()
 
-    return show_notes_table("Sorted notes", sorted)
-    
+    return show_notes_table("Sorted notes", sorted_notes)
 
-def show_notes_table(tableTitle: str, notes: list[Note]):
-    result = f"{tableTitle}:\n"
-    for note in notes:
+
+def show_notes_table(table_title: str, notes_list: list[Note]) -> str:
+    """
+    Formats a list of notes into a string table.
+
+    Args:
+        table_title (str): The title for the table.
+        notes_list (list[Note]): The list of notes to format.
+
+    Returns:
+        str: The formatted string.
+    """
+    result = f"{table_title}:\n"
+    for note in notes_list:
         result += f"{note}\n"
         result += f"{'-' * 40}\n"
     return result.strip()
 
 
+def hello_command() -> str:
+    """Displays a welcome message and a command manual."""
+    return """
+Hello! Welcome to the Personal Assistant bot. Here are the available commands:
+| Command             | Arguments                         | Example                               |
+| :------------------ | :-------------------------------- | :------------------------------------ |
+| hello               |                                   | hello                                 |
+| add                 | <Name> <Phone> [Email] [Address]  | add John 1234567890 john@mail.com     |
+| change              | <Name> <Old Phone> <New Phone>    | change John 123... 098...             |
+| show                | <Name>                            | show John                             |
+| all                 |                                   | all                                   |
+| delete              | <Name>                            | delete John                           |
+| add-birthday        | <Name> <DD.MM.YYYY>               | add-birthday John 01.01.1990          |
+| show-birthday       | <Name>                            | show-birthday John                    |
+| birthdays           | [days]                            | birthdays 14                          |
+| search              | <query>                           | search John                           |
+| add-note            | <title> <content> [#tags...]      | add-note Shopping Eggs Milk #urgent   |
+| edit-note           | <title> <new_content>             | edit-note Shopping Milk, Tea          |
+| delete-note         | <title>                           | delete-note Shopping                  |
+| add-tag             | <title> [#tag1] [#tag2]           | add-tag Shopping #urgent #home        |
+| remove-tag          | <title> <#tag>                    | remove-tag Shopping #urgent           |
+| find-notes-by-tag   | <#tag>                            | find-notes-by-tag #urgent             |
+| show-notes-sorted   | [title/tags]                      | show-notes-sorted tags                |
+| show-all-notes      |                                   | show-all-notes                        |
+| close / exit        |                                   | close                                 |
+"""
+
+
 def main():
-# --- Load both objects from the utility function ---
+    """Main function to run the CLI assistant."""
     book, notes = load_data()
-    
+
     print("Welcome to the Personal Assistant bot! Enter 'hello' to see commands.")
-    
+
     commands_map = {
         "hello": hello_command,
         "add": add_contact,
@@ -380,7 +520,7 @@ def main():
         "show": show_contact_detail,
         "all": show_all,
         "delete": delete_contact,
-        "birthdays": birthdays,  # Updated to real handler
+        "birthdays": birthdays,
         "add-birthday": add_birthday,
         "show-birthday": show_birthday,
         "search": search_command,
@@ -398,48 +538,51 @@ def main():
         while True:
             try:
                 user_input = input("Enter a command: ").strip()
-            except EOFError: # Handles Ctrl+D
+            except EOFError:  # Handles Ctrl+D
                 print("\nGood bye!")
                 break
-                
+
             if not user_input:
                 continue
-                
+
             command, args = parse_input(user_input)
-            
+
             if command in ["close", "exit"]:
                 print("Good bye!")
-                break # Exit loop, triggering the final save
-                
+                break  # Exit loop, triggering the final save
+
             handler = commands_map.get(command)
-            
+
             if handler:
-                # Logic to call the handler based on the required arguments (This part remains correct)
+                # Call the handler based on its argument requirements
                 if command == "hello":
                     print(handler())
                 elif command == "all":
                     print(handler(book))
                 elif command == "show-all-notes":
                     print(handler(notes))
-                # Commands operating on AddressBook that take args
-                elif command in ["birthdays", "add-birthday", "show-birthday", "search", "add", "change", "show", "delete"]:
+                elif command in [
+                    "birthdays", "add-birthday", "show-birthday", "search",
+                    "add", "change", "show", "delete"
+                ]:
                     print(handler(args, book))
-                # Commands operating on NoteBook that take args
-                elif command in ["add-note", "edit-note", "delete-note", "add-tag", "remove-tag", "find-notes-by-tag", "show-notes-sorted"]:
+                elif command in [
+                    "add-note", "edit-note", "delete-note", "add-tag",
+                    "remove-tag", "find-notes-by-tag", "show-notes-sorted"
+                ]:
                     print(handler(args, notes))
                 else:
                     print("Unknown internal command logic.")
-
             else:
                 print("Invalid command. Enter 'hello' to see available commands.")
-                
-    except KeyboardInterrupt: # Handles Ctrl+C
+
+    except KeyboardInterrupt:  # Handles Ctrl+C
         print("\nInterruption detected. Saving data...")
         # Fall through to final save
 
-    # --- FINAL SAVE POINT FOR ALL EXIT MODES ---
+    # Final save point for all exit modes
     save_data(book, notes)
+
 
 if __name__ == "__main__":
     main()
-    

@@ -1,17 +1,27 @@
+"""
+Main module for the Personal Assistant GUI.
+
+This file contains the main application class `App`, all pop-up window classes,
+and the main function to launch the graphical user interface.
+"""
 import customtkinter as ctk
 from tkinter import messagebox
-from .models import AddressBook, NoteBook, Record, Note, DataValidationError
-from .serialization_utils import load_data, save_data
-from .gui_backend import (
+
+from assistant.models import AddressBook, NoteBook, Record, Note, DataValidationError
+from assistant.serialization_utils import load_data, save_data
+from assistant.gui_backend import (
     add_contact_gui, add_note_gui, edit_contact_gui, edit_note_gui,
     search_notes_by_multiple_tags_gui, delete_contact_gui, delete_note_gui,
     get_birthdays_gui
 )
 
+
 # --- Pop-up Windows ---
 
 class AddContactWindow(ctk.CTkToplevel):
+    """A pop-up window for adding a new contact."""
     def __init__(self, master):
+        """Initializes the AddContactWindow."""
         super().__init__(master)
         self.app = master
 
@@ -42,7 +52,7 @@ class AddContactWindow(ctk.CTkToplevel):
         self.address_label.grid(row=3, column=0, padx=20, pady=10, sticky="w")
         self.address_entry = ctk.CTkEntry(self, placeholder_text="(Optional)")
         self.address_entry.grid(row=3, column=1, padx=20, pady=10, sticky="ew")
-        
+
         self.birthday_label = ctk.CTkLabel(self, text="Birthday")
         self.birthday_label.grid(row=4, column=0, padx=20, pady=10, sticky="w")
         self.birthday_entry = ctk.CTkEntry(self, placeholder_text="DD.MM.YYYY (Optional)")
@@ -58,6 +68,7 @@ class AddContactWindow(ctk.CTkToplevel):
         self.cancel_button.pack(side="left", padx=10)
 
     def save_action(self):
+        """Gathers input, calls the backend to save the contact, and handles errors."""
         name = self.name_entry.get().strip()
         phones = self.phone_entry.get().strip()
         email = self.email_entry.get().strip()
@@ -76,18 +87,21 @@ class AddContactWindow(ctk.CTkToplevel):
         except DataValidationError as e:
             messagebox.showerror("Validation Error", str(e), parent=self)
 
+
 class EditContactWindow(AddContactWindow):
+    """A pop-up window for editing an existing contact."""
     def __init__(self, master, record: Record):
+        """Initializes the EditContactWindow, pre-filling fields with existing data."""
         super().__init__(master)
         self.record = record
         self.title("Edit Contact")
 
         self.name_entry.insert(0, record.name.value)
         self.name_entry.configure(state="disabled")
-        
+
         phones_str = ", ".join([p.value for p in record.phones])
         self.phone_entry.insert(0, phones_str)
-        
+
         if record.email:
             self.email_entry.insert(0, record.email.value)
         if record.address:
@@ -96,6 +110,7 @@ class EditContactWindow(AddContactWindow):
             self.birthday_entry.insert(0, str(record.birthday))
 
     def save_action(self):
+        """Gathers input, calls the backend to edit the contact, and handles errors."""
         new_phones = self.phone_entry.get().strip()
         new_email = self.email_entry.get().strip()
         new_address = self.address_entry.get().strip()
@@ -111,7 +126,9 @@ class EditContactWindow(AddContactWindow):
 
 
 class AddNoteWindow(ctk.CTkToplevel):
+    """A pop-up window for adding a new note."""
     def __init__(self, master):
+        """Initializes the AddNoteWindow."""
         super().__init__(master)
         self.app = master
 
@@ -124,13 +141,13 @@ class AddNoteWindow(ctk.CTkToplevel):
         self.grid_rowconfigure(1, weight=1)
 
         self.title_entry = ctk.CTkEntry(self, placeholder_text="Enter note title*")
-        self.title_entry.pack(padx=20, pady=(10,5), fill="x")
+        self.title_entry.pack(padx=20, pady=(10, 5), fill="x")
 
         self.content_textbox = ctk.CTkTextbox(self, wrap="word")
         self.content_textbox.pack(padx=20, pady=5, fill="both", expand=True)
 
         self.tags_entry = ctk.CTkEntry(self, placeholder_text="Enter tags separated by spaces (e.g., #work #urgent)")
-        self.tags_entry.pack(padx=20, pady=(5,10), fill="x")
+        self.tags_entry.pack(padx=20, pady=(5, 10), fill="x")
 
         self.button_frame = ctk.CTkFrame(self, fg_color="transparent")
         self.button_frame.pack(pady=10)
@@ -141,6 +158,7 @@ class AddNoteWindow(ctk.CTkToplevel):
         self.cancel_button.pack(side="left", padx=10)
 
     def save_action(self):
+        """Gathers input, calls the backend to save the note, and handles errors."""
         title = self.title_entry.get().strip()
         content = self.content_textbox.get("1.0", "end-1c").strip()
         tags = self.tags_entry.get().strip().split()
@@ -157,8 +175,11 @@ class AddNoteWindow(ctk.CTkToplevel):
         except DataValidationError as e:
             messagebox.showerror("Validation Error", str(e), parent=self)
 
+
 class EditNoteWindow(AddNoteWindow):
+    """A pop-up window for editing an existing note."""
     def __init__(self, master, note: Note):
+        """Initializes the EditNoteWindow, pre-filling fields with existing data."""
         super().__init__(master)
         self.note = note
         self.title("Edit Note")
@@ -170,6 +191,7 @@ class EditNoteWindow(AddNoteWindow):
             self.tags_entry.insert(0, " ".join(f"#{t}" for t in note.tags))
 
     def save_action(self):
+        """Gathers input, calls the backend to edit the note, and handles errors."""
         new_content = self.content_textbox.get("1.0", "end-1c").strip()
         new_tags = self.tags_entry.get().strip().split()
 
@@ -185,8 +207,11 @@ class EditNoteWindow(AddNoteWindow):
         except DataValidationError as e:
             messagebox.showerror("Validation Error", str(e), parent=self)
 
+
 class BirthdaysWindow(ctk.CTkToplevel):
+    """A pop-up window for searching for upcoming birthdays."""
     def __init__(self, master):
+        """Initializes the BirthdaysWindow."""
         super().__init__(master)
         self.app = master
 
@@ -198,7 +223,7 @@ class BirthdaysWindow(ctk.CTkToplevel):
         self.grid_columnconfigure(0, weight=1)
 
         self.label = ctk.CTkLabel(self, text="Enter number of days to search:")
-        self.label.pack(padx=20, pady=(10,5))
+        self.label.pack(padx=20, pady=(10, 5))
 
         self.days_entry = ctk.CTkEntry(self)
         self.days_entry.insert(0, "7")
@@ -208,6 +233,7 @@ class BirthdaysWindow(ctk.CTkToplevel):
         self.search_button.pack(padx=20, pady=10)
 
     def search_action(self):
+        """Gets the number of days, calls the backend, and shows results."""
         days_str = self.days_entry.get().strip()
         try:
             days = int(days_str)
@@ -216,7 +242,7 @@ class BirthdaysWindow(ctk.CTkToplevel):
         except ValueError:
             messagebox.showerror("Error", "Please enter a valid positive number.", parent=self)
             return
-        
+
         results = get_birthdays_gui(days, self.app.book)
         self.destroy()
         messagebox.showinfo("Upcoming Birthdays", results if results else "No upcoming birthdays found.", parent=self.app)
@@ -225,7 +251,15 @@ class BirthdaysWindow(ctk.CTkToplevel):
 # --- Main Application ---
 
 class App(ctk.CTk):
+    """The main application class for the Personal Assistant GUI."""
     def __init__(self, book: AddressBook, notes: NoteBook):
+        """
+        Initializes the main application window and all its components.
+
+        Args:
+            book (AddressBook): An instance of the AddressBook.
+            notes (NoteBook): An instance of the NoteBook.
+        """
         super().__init__()
 
         self.book = book
@@ -249,27 +283,28 @@ class App(ctk.CTk):
 
         self.setup_contacts_tab()
         self.setup_notes_tab()
-        
+
         self.protocol("WM_DELETE_WINDOW", self.on_closing)
 
     def setup_contacts_tab(self):
+        """Creates and configures all widgets for the Contacts tab."""
         self.contacts_tab.grid_columnconfigure(0, weight=1)
         self.contacts_tab.grid_columnconfigure(1, weight=2)
         self.contacts_tab.grid_rowconfigure(1, weight=1)
 
         self.contact_search_bar = ctk.CTkEntry(self.contacts_tab, placeholder_text="Search contacts...")
-        self.contact_search_bar.grid(row=0, column=0, columnspan=2, padx=10, pady=(10,5), sticky="ew")
+        self.contact_search_bar.grid(row=0, column=0, columnspan=2, padx=10, pady=(10, 5), sticky="ew")
         self.contact_search_bar.bind("<KeyRelease>", self.search_contacts_event)
 
         self.contact_list_frame = ctk.CTkScrollableFrame(self.contacts_tab, label_text="Contacts")
-        self.contact_list_frame.grid(row=1, column=0, padx=10, pady=(5,10), sticky="nsew")
+        self.contact_list_frame.grid(row=1, column=0, padx=10, pady=(5, 10), sticky="nsew")
 
         self.contact_details = ctk.CTkTextbox(self.contacts_tab, wrap="word")
-        self.contact_details.grid(row=1, column=1, padx=10, pady=(5,10), sticky="nsew")
+        self.contact_details.grid(row=1, column=1, padx=10, pady=(5, 10), sticky="nsew")
 
         self.contact_actions = ctk.CTkFrame(self.contacts_tab)
         self.contact_actions.grid(row=2, column=0, columnspan=2, pady=10, sticky="ew")
-        
+
         self.add_contact_btn = ctk.CTkButton(self.contact_actions, text="Add Contact", command=self.open_add_contact_window)
         self.add_contact_btn.pack(side="left", padx=10)
         self.edit_contact_btn = ctk.CTkButton(self.contact_actions, text="Edit Contact", command=self.open_edit_contact_window)
@@ -282,19 +317,20 @@ class App(ctk.CTk):
         self.populate_contact_list()
 
     def setup_notes_tab(self):
+        """Creates and configures all widgets for the Notes tab."""
         self.notes_tab.grid_columnconfigure(0, weight=1)
         self.notes_tab.grid_columnconfigure(1, weight=2)
         self.notes_tab.grid_rowconfigure(1, weight=1)
 
         self.note_search_bar = ctk.CTkEntry(self.notes_tab, placeholder_text="Search by tags (e.g., #work, #urgent)")
-        self.note_search_bar.grid(row=0, column=0, columnspan=2, padx=10, pady=(10,5), sticky="ew")
+        self.note_search_bar.grid(row=0, column=0, columnspan=2, padx=10, pady=(10, 5), sticky="ew")
         self.note_search_bar.bind("<KeyRelease>", self.search_notes_event)
 
         self.note_list_frame = ctk.CTkScrollableFrame(self.notes_tab, label_text="Notes")
-        self.note_list_frame.grid(row=1, column=0, padx=10, pady=(5,10), sticky="nsew")
+        self.note_list_frame.grid(row=1, column=0, padx=10, pady=(5, 10), sticky="nsew")
 
         self.note_details = ctk.CTkTextbox(self.notes_tab, wrap="word")
-        self.note_details.grid(row=1, column=1, padx=10, pady=(5,10), sticky="nsew")
+        self.note_details.grid(row=1, column=1, padx=10, pady=(5, 10), sticky="nsew")
 
         self.note_actions = ctk.CTkFrame(self.notes_tab)
         self.note_actions.grid(row=2, column=0, columnspan=2, pady=10, sticky="ew")
@@ -309,6 +345,7 @@ class App(ctk.CTk):
         self.populate_note_list()
 
     def search_contacts_event(self, event=None):
+        """Handles the live search event for contacts."""
         query = self.contact_search_bar.get().strip()
         if not query:
             self.populate_contact_list()
@@ -317,6 +354,7 @@ class App(ctk.CTk):
             self.populate_contact_list(results)
 
     def search_notes_event(self, event=None):
+        """Handles the live search event for notes."""
         query = self.note_search_bar.get().strip()
         if not query:
             self.populate_note_list()
@@ -325,9 +363,11 @@ class App(ctk.CTk):
             self.populate_note_list(results)
 
     def open_add_contact_window(self):
+        """Opens the pop-up window to add a new contact."""
         AddContactWindow(self)
 
     def open_edit_contact_window(self):
+        """Opens the pop-up window to edit the selected contact."""
         if not self.selected_contact_name:
             messagebox.showinfo("Info", "Please select a contact to edit.", parent=self)
             return
@@ -336,24 +376,28 @@ class App(ctk.CTk):
             EditContactWindow(self, record)
 
     def open_add_note_window(self):
+        """Opens the pop-up window to add a new note."""
         AddNoteWindow(self)
 
     def open_edit_note_window(self):
+        """Opens the pop-up window to edit the selected note."""
         if not self.selected_note_title:
             messagebox.showinfo("Info", "Please select a note to edit.", parent=self)
             return
         note = self.notes.find_note_by_id(self.selected_note_title)
         if note:
             EditNoteWindow(self, note)
-            
+
     def open_birthdays_window(self):
+        """Opens the pop-up window to search for upcoming birthdays."""
         BirthdaysWindow(self)
 
     def delete_selected_contact(self):
+        """Deletes the currently selected contact after confirmation."""
         if not self.selected_contact_name:
             messagebox.showinfo("Info", "Please select a contact to delete.", parent=self)
             return
-        
+
         if messagebox.askyesno("Confirm Delete", f"Are you sure you want to delete {self.selected_contact_name}?", parent=self):
             try:
                 delete_contact_gui(self.selected_contact_name, self.book)
@@ -366,6 +410,7 @@ class App(ctk.CTk):
                 messagebox.showerror("Error", str(e), parent=self)
 
     def delete_selected_note(self):
+        """Deletes the currently selected note after confirmation."""
         if not self.selected_note_title:
             messagebox.showinfo("Info", "Please select a note to delete.", parent=self)
             return
@@ -382,13 +427,14 @@ class App(ctk.CTk):
                 messagebox.showerror("Error", str(e), parent=self)
 
     def populate_contact_list(self, records=None):
+        """Clears and repopulates the contact list frame."""
         for widget in self.contact_list_frame.winfo_children():
             widget.destroy()
         self.contact_buttons.clear()
 
         contact_records = records if records is not None else self.book.data.values()
         sorted_records = sorted(contact_records, key=lambda r: r.name.value)
-        
+
         if not sorted_records:
             label = ctk.CTkLabel(self.contact_list_frame, text="No contacts found.")
             label.pack(pady=10, padx=10)
@@ -401,14 +447,14 @@ class App(ctk.CTk):
                                    fg_color="transparent", anchor="w")
             button.pack(fill="x", padx=5, pady=2)
             self.contact_buttons[name] = button
-        
+
         if self.selected_contact_name and self.selected_contact_name in self.contact_buttons:
             self.show_contact_details(self.selected_contact_name)
 
-
     def show_contact_details(self, name: str):
+        """Displays the full details of a selected contact."""
         self.selected_contact_name = name
-        
+
         for btn_name, btn_widget in self.contact_buttons.items():
             if btn_name == name:
                 btn_widget.configure(fg_color="#3B8ED0")
@@ -423,6 +469,7 @@ class App(ctk.CTk):
         self.contact_details.configure(state="disabled")
 
     def populate_note_list(self, notes=None):
+        """Clears and repopulates the note list frame."""
         for widget in self.note_list_frame.winfo_children():
             widget.destroy()
         self.note_buttons.clear()
@@ -443,11 +490,12 @@ class App(ctk.CTk):
                                    fg_color="transparent", anchor="w")
             button.pack(fill="x", padx=5, pady=2)
             self.note_buttons[title] = button
-        
+
         if self.selected_note_title and self.selected_note_title in self.note_buttons:
             self.show_note_details(self.selected_note_title)
 
     def show_note_details(self, title: str):
+        """Displays the full details of a selected note."""
         self.selected_note_title = title
 
         for btn_title, btn_widget in self.note_buttons.items():
@@ -463,19 +511,22 @@ class App(ctk.CTk):
             tags_str = ", ".join(f"#{t}" for t in sorted(note.tags)) if note.tags else "No tags"
             full_text = f"Title: {note.title}\n\n"
             full_text += f"Tags: {tags_str}\n"
-            full_text += "--------------------"
+            full_text += "--------------------\n\n"
             full_text += note.content
             self.note_details.insert("1.0", full_text)
         self.note_details.configure(state="disabled")
 
     def on_closing(self):
+        """Handles the window close event, ensuring data is saved."""
         save_data(self.book, self.notes)
         self.destroy()
 
+
 def main():
+    """Main function to initialize and run the GUI application."""
     book, notes = load_data()
     app = App(book=book, notes=notes)
-    
+
     # Show welcome message on first launch
     messagebox.showinfo(
         "Welcome!",
@@ -487,8 +538,9 @@ def main():
         "- Use Add, Edit, and Delete to manage your data.\n\n"
         "All data is saved automatically when you close the app."
     )
-    
+
     app.mainloop()
+
 
 if __name__ == "__main__":
     main()
